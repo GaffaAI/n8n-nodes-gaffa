@@ -1,6 +1,6 @@
 {
   "name": "@gaffa-dev/n8n-nodes-gaffa",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "n8n community node for the Gaffa browser-automation API",
   "license": "MIT",
   "author": {
