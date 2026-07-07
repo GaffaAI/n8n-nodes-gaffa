@@ -1,10 +1,11 @@
 {
   "name": "@gaffa-dev/n8n-nodes-gaffa",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "n8n community node for the Gaffa browser-automation API",
   "license": "MIT",
   "author": {
-    "name": "Dominic Frei"
+    "name": "James Mundy",
+    "email": "jemundy@outlook.com"
   },
   "homepage": "https://gaffa.dev",
   "repository": {
