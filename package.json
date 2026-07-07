@@ -1,0 +1,54 @@
+{
+  "name": "@gaffa-dev/n8n-nodes-gaffa",
+  "version": "0.1.0-beta.0",
+  "description": "n8n community node for the Gaffa browser-automation API",
+  "license": "MIT",
+  "author": {
+    "name": "Dominic Frei"
+  },
+  "homepage": "https://gaffa.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GaffaAI/n8n-nodes-gaffa.git"
+  },
+  "keywords": [
+    "n8n-community-node-package",
+    "gaffa",
+    "scraping",
+    "browser-automation"
+  ],
+  "engines": {
+    "node": ">=20.15"
+  },
+  "scripts": {
+    "build": "n8n-node build",
+    "dev": "n8n-node dev",
+    "lint": "n8n-node lint",
+    "lint:fix": "n8n-node lint --fix",
+    "release": "n8n-node release",
+    "prepublishOnly": "n8n-node prerelease"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "strict": true,
+    "credentials": [
+      "dist/credentials/GaffaApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Gaffa/Gaffa.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@n8n/node-cli": ">=0.23.0",
+    "typescript": "5.9.3"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}

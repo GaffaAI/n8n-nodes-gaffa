@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es2022",
+    "lib": ["es2022"],
+    "esModuleInterop": true,
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "skipLibCheck": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["nodes/**/*", "credentials/**/*"]
+}

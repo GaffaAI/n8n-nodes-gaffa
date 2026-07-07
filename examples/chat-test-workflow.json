@@ -1,0 +1,61 @@
+{
+  "name": "Gaffa chat test",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [0, 0],
+      "webhookId": "gaffa-chat-test-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "markdown",
+        "url": "={{ $json.chatInput }}",
+        "waitForCompletion": true,
+        "options": {}
+      },
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "Gaffa",
+      "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
+      "typeVersion": 1,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1b2c3d4-0000-0000-0000-000000000001",
+              "name": "output",
+              "type": "string",
+              "value": "={{ $json.actions[0].output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "33333333-3333-3333-3333-333333333333",
+      "name": "Answer",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 0]
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [[{ "node": "Gaffa", "type": "main", "index": 0 }]]
+    },
+    "Gaffa": {
+      "main": [[{ "node": "Answer", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
