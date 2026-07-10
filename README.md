@@ -4,7 +4,7 @@ An n8n community node for [Gaffa](https://gaffa.dev), the browser-automation API
 
 ## Installation
 
-In n8n, go to Settings > Community Nodes and install `n8n-nodes-gaffa`. For a self-hosted instance you can also `npm install n8n-nodes-gaffa` in your n8n custom nodes folder.
+In n8n, go to Settings > Community Nodes and install `@gaffa-dev/n8n-nodes-gaffa`. For a self-hosted instance you can also `npm install @gaffa-dev/n8n-nodes-gaffa` in your n8n custom nodes folder.
 
 ## Credentials
 

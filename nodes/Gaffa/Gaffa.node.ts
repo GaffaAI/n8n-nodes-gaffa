@@ -183,7 +183,7 @@ export class Gaffa implements INodeType {
 				default: {},
 				options: [
 					{
-						displayName: 'Max Cache Age (Ms)',
+						displayName: 'Max Cache Age (ms)',
 						name: 'maxCacheAge',
 						type: 'number',
 						default: 0,
@@ -191,14 +191,14 @@ export class Gaffa implements INodeType {
 						description: 'Set 0 to bypass the cross-user cache and force a fresh fetch',
 					},
 					{
-						displayName: 'Poll Interval (Ms)',
+						displayName: 'Poll Interval (ms)',
 						name: 'pollInterval',
 						type: 'number',
 						default: 2000,
 						description: 'How long to wait between polls when waiting for completion',
 					},
 					{
-						displayName: 'Poll Timeout (Ms)',
+						displayName: 'Poll Timeout (ms)',
 						name: 'pollTimeout',
 						type: 'number',
 						default: 120000,
@@ -227,7 +227,7 @@ export class Gaffa implements INodeType {
 						description: 'Whether to store a recording so the request can be debugged later',
 					},
 					{
-						displayName: 'Time Limit (Ms)',
+						displayName: 'Time Limit (ms)',
 						name: 'timeLimit',
 						type: 'number',
 						default: 60000,
