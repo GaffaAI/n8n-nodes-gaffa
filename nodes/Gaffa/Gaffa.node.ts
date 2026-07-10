@@ -183,26 +183,26 @@ export class Gaffa implements INodeType {
 				default: {},
 				options: [
 					{
-						displayName: 'Max Cache Age (ms)',
+						displayName: 'Max Cache Age',
 						name: 'maxCacheAge',
 						type: 'number',
 						default: 0,
 						displayOptions: { show: { '/operation': ['markdown', 'extract'] } },
-						description: 'Set 0 to bypass the cross-user cache and force a fresh fetch',
+						description: 'Maximum cache age in milliseconds. Set 0 to bypass the cross-user cache and force a fresh fetch.',
 					},
 					{
-						displayName: 'Poll Interval (ms)',
+						displayName: 'Poll Interval',
 						name: 'pollInterval',
 						type: 'number',
 						default: 2000,
-						description: 'How long to wait between polls when waiting for completion',
+						description: 'How long to wait between polls, in milliseconds, when waiting for completion',
 					},
 					{
-						displayName: 'Poll Timeout (ms)',
+						displayName: 'Poll Timeout',
 						name: 'pollTimeout',
 						type: 'number',
 						default: 120000,
-						description: 'Give up waiting after this long and report a timeout',
+						description: 'How long to wait in milliseconds before giving up and reporting a timeout',
 					},
 					{
 						displayName: 'Proxy Location',
@@ -227,13 +227,13 @@ export class Gaffa implements INodeType {
 						description: 'Whether to store a recording so the request can be debugged later',
 					},
 					{
-						displayName: 'Time Limit (ms)',
+						displayName: 'Time Limit',
 						name: 'timeLimit',
 						type: 'number',
 						default: 60000,
 						displayOptions: { show: { '/operation': ['markdown', 'extract'] } },
 						description:
-							'Max runtime. Keep below your plan max (Starter 60000, Startup 120000, Growth 300000).',
+							'Max runtime in milliseconds. Keep below your plan max (Starter 60000, Startup 120000, Growth 300000).',
 					},
 				],
 			},
