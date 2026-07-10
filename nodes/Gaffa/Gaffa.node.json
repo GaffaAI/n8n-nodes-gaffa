@@ -1,5 +1,5 @@
 {
-  "node": "n8n-nodes-gaffa",
+  "node": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
   "nodeVersion": "1.0",
   "codexVersion": "1.0",
   "categories": ["Development", "Data & Storage"],
