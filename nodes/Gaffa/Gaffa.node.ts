@@ -233,7 +233,7 @@ export class Gaffa implements INodeType {
 						default: 60000,
 						displayOptions: { show: { '/operation': ['markdown', 'extract'] } },
 						description:
-							'Max runtime in milliseconds. Keep below your plan max (Starter 60000, Startup 120000, Growth 300000).',
+							'Max runtime in milliseconds. Keep below your plan max, see gaffa.dev/#pricing.',
 					},
 				],
 			},
