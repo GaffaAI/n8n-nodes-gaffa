@@ -16,10 +16,10 @@ Create a Gaffa API credential and paste your API key. The key is sent as the `X-
 Paste a full Gaffa request body as JSON. This maps directly to `POST /v1/browser/requests`, so you can use any action and setting Gaffa supports. Good when you already know the request structure.
 
 ### Convert to Markdown
-Give a URL and get the page back as markdown. Builds a `generate_markdown` action with inline output, so the content comes back in the response rather than as a file link.
+Give a URL and get the page back as markdown. Builds a `generate_markdown` action with inline output, so the content comes back in the response rather than as a file link. An optional CSS selector narrows the result to a single element.
 
 ### Extract to JSON
-Give a URL and a list of fields (name, type, description). Builds a `parse_json` action with an inline schema and returns the extracted data. This action is token-priced, so cost is per call rather than fixed.
+Give a URL and a list of fields (name, type, description), plus an optional instruction to guide extraction. Builds a `parse_json` action with an inline schema and returns the extracted data. This action is token-priced, so cost is per call rather than fixed.
 
 ## Example
 
@@ -38,7 +38,7 @@ Gaffa requests are asynchronous. By default the node submits the request and pol
 
 ## Notes
 
-- Time limit defaults to 60000 ms. Keep it below your plan max (Starter 1 min, Startup 2 min, Growth 5 min).
+- Time limit defaults to 60000 ms. Keep it below your plan max, see [gaffa.dev pricing](https://gaffa.dev/#pricing).
 
 ## License
 
