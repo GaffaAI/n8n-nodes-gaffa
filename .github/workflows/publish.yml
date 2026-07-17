@@ -40,12 +40,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
-
-      - name: Publish to npm
+      - name: Release
+        # Lint, build and publish with provenance all run as part of `n8n-node release`
+        # in CI. A bare `npm publish` is blocked by the package's prepublishOnly hook,
+        # which exists to force publishing through this command.
         run: |
           [ -n "$NPM_TOKEN" ] && npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
-          npm publish --provenance --access public
+          npm run release
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
