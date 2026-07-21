@@ -1,6 +1,6 @@
 # n8n-nodes-gaffa
 
-An n8n community node for [Gaffa](https://gaffa.dev), the browser-automation API. Use it to run Gaffa browser requests from a workflow: send a raw request, pull a page as markdown, or extract structured JSON.
+An n8n community node for [Gaffa](https://gaffa.dev/?utm_source=npm&utm_medium=referral&utm_campaign=n8n-nodes-gaffa), the browser-automation API. Use it to run Gaffa browser requests from a workflow: send a raw request, pull a page as markdown, or extract structured JSON.
 
 ## Installation
 
@@ -38,7 +38,7 @@ Gaffa requests are asynchronous. By default the node submits the request and pol
 
 ## Notes
 
-- Time limit defaults to 60000 ms. Keep it below your plan max, see [gaffa.dev pricing](https://gaffa.dev/#pricing).
+- Time limit defaults to 60000 ms. Keep it below your plan max, see [gaffa.dev pricing](https://gaffa.dev/?utm_source=npm&utm_medium=referral&utm_campaign=n8n-nodes-gaffa#pricing).
 
 ## License
 
