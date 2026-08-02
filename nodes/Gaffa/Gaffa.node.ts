@@ -188,7 +188,7 @@ export class Gaffa implements INodeType {
 						type: 'number',
 						default: 0,
 						displayOptions: { show: { '/operation': ['markdown', 'extract'] } },
-						description: 'Maximum cache age in milliseconds. Set 0 to bypass the cross-user cache and force a fresh fetch.',
+						description: 'Maximum cache age in seconds. Set 0 to bypass the cross-user cache and force a fresh fetch.',
 					},
 					{
 						displayName: 'Poll Interval',
