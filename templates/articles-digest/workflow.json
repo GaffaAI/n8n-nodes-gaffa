@@ -1,0 +1,141 @@
+{
+  "name": "Watch a page for new articles and email a digest with Gaffa",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Watch a page for new articles and email a digest\n\n### How it works\nPoint this workflow at any page that lists articles and get an email whenever new ones appear.\n\n1. Set the page URL and the CSS selector of the article list in the Settings node.\n2. The Gaffa node loads the page in a real browser and extracts every article as title, url and date.\n3. The Keep only new articles node remembers the URLs it has seen and lets only new ones through.\n4. New articles are formatted into one digest and sent by email.\n\n### Setup\n1. Install the Gaffa community node (@gaffa-dev/n8n-nodes-gaffa) if you have not already.\n2. Create an API key at gaffa.dev and add it as the Gaffa API credential.\n3. Add your SMTP credential and the from and to addresses in the Send the digest node.\n4. Put your page URL and list selector into the Settings node, then activate the workflow.\n\n### Customization tips\nThe seen URLs only persist in production runs, so a manual test run always emails the full list. Adjust the Schedule Trigger to how often the page updates. The selector narrows what the extraction reads, pick the element that wraps the article list, for example `#main` or `.post-list`.",
+        "height": 720,
+        "width": 420
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000001",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-480, -240]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000002",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1c2c3c4-0000-0000-0000-000000000001",
+              "name": "page_url",
+              "type": "string",
+              "value": "https://news.ycombinator.com"
+            },
+            {
+              "id": "c1c2c3c4-0000-0000-0000-000000000002",
+              "name": "list_selector",
+              "type": "string",
+              "value": "#hnmain"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000003",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "operation": "sendRequest",
+        "body": "={{ JSON.stringify({ url: $json.page_url, max_cache_age: 0, settings: { time_limit: 60000, actions: [ { type: \"parse_json\", selector: $json.list_selector, output_type: \"inline\", data_schema: { name: \"article_list\", description: \"The articles listed on the page\", fields: [ { type: \"array\", name: \"articles\", description: \"One entry per article in the list\", fields: [ { type: \"string\", name: \"title\", description: \"The article title\" }, { type: \"string\", name: \"url\", description: \"The absolute link to the article\" }, { type: \"string\", name: \"date\", description: \"The publication date or age as shown, empty string when the page shows none\" } ] } ] } } ] } }) }}",
+        "waitForCompletion": true,
+        "options": {}
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000004",
+      "name": "Extract the articles",
+      "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
+      "typeVersion": 1,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "actions[0].output.articles",
+        "options": {}
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000005",
+      "name": "One item per article",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Let only articles through whose URL we have not seen before.\n// Seen URLs live in workflow static data, which only persists in production runs.\nconst staticData = $getWorkflowStaticData('global');\nconst seen = staticData.seenUrls || [];\nconst newItems = $input.all().filter(item => item.json.url && !seen.includes(item.json.url));\nstaticData.seenUrls = seen.concat(newItems.map(item => item.json.url)).slice(-500);\nreturn newItems;"
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000006",
+      "name": "Keep only new articles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build one digest email out of all new articles.\nconst escapeHtml = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst items = $input.all();\nconst lines = items.map(item => {\n  const date = item.json.date ? ` (${escapeHtml(item.json.date)})` : '';\n  return `<li><a href=\"${escapeHtml(item.json.url)}\">${escapeHtml(item.json.title)}</a>${date}</li>`;\n});\nconst count = items.length;\nreturn [{ json: {\n  subject: `${count} new article${count === 1 ? '' : 's'} on your watched page`,\n  html: `<p>New articles since the last check:</p>\\n<ul>\\n${lines.join('\\n')}\\n</ul>`\n} }];"
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000007",
+      "name": "Format the digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "fromEmail": "",
+        "toEmail": "",
+        "subject": "={{ $json.subject }}",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000008",
+      "name": "Send the digest",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1320, 0]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "Settings", "type": "main", "index": 0 }]]
+    },
+    "Settings": {
+      "main": [[{ "node": "Extract the articles", "type": "main", "index": 0 }]]
+    },
+    "Extract the articles": {
+      "main": [[{ "node": "One item per article", "type": "main", "index": 0 }]]
+    },
+    "One item per article": {
+      "main": [[{ "node": "Keep only new articles", "type": "main", "index": 0 }]]
+    },
+    "Keep only new articles": {
+      "main": [[{ "node": "Format the digest", "type": "main", "index": 0 }]]
+    },
+    "Format the digest": {
+      "main": [[{ "node": "Send the digest", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
