@@ -1,0 +1,117 @@
+{
+  "name": "Scrape a web page table into Google Sheets with Gaffa",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Scrape a web page table into Google Sheets\n\n### How it works\nPoint this workflow at any page with an HTML table and it lands as rows in your Google Sheet.\n\n1. Set the page URL and the table's CSS selector in the Settings node.\n2. The Gaffa node loads the page in a real browser and parses the table to JSON.\n3. The fetch node downloads the result, one item per table row, the lowercased headers become the column names.\n4. Google Sheets appends the rows.\n\n### Setup\n1. Install the Gaffa community node (@gaffa-dev/n8n-nodes-gaffa) if you have not already.\n2. Create an API key at gaffa.dev and add it as the Gaffa API credential.\n3. Connect your Google Sheets account and pick the spreadsheet in the last node.\n4. Put your page URL and table selector into the Settings node and run the workflow.\n\n### Customization tips\nThe selector must identify exactly one table, use the browser dev tools to find it, for example `#prices` or `table.results`. Swap the manual trigger for a Schedule Trigger to pull the table on a cadence. All values arrive as text, add a Set node if you need real numbers or dates.",
+        "height": 700,
+        "width": 420
+      },
+      "id": "44444444-4444-4444-4444-444444444444",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-480, -220]
+    },
+    {
+      "parameters": {},
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "When clicking Execute workflow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1b2c3d4-0000-0000-0000-000000000001",
+              "name": "page_url",
+              "type": "string",
+              "value": "https://www.w3schools.com/html/html_tables.asp"
+            },
+            {
+              "id": "b1b2c3d4-0000-0000-0000-000000000002",
+              "name": "table_selector",
+              "type": "string",
+              "value": "#customers"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "operation": "sendRequest",
+        "body": "={{ JSON.stringify({ url: $json.page_url, max_cache_age: 0, settings: { time_limit: 60000, actions: [ { type: \"parse_table\", selector: $json.table_selector } ] } }) }}",
+        "waitForCompletion": true,
+        "options": {}
+      },
+      "id": "33333333-3333-3333-3333-333333333333",
+      "name": "Parse the table",
+      "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
+      "typeVersion": 1,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.actions[0].output }}",
+        "options": {}
+      },
+      "id": "55555555-5555-5555-5555-555555555555",
+      "name": "Fetch the rows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "66666666-6666-6666-6666-666666666666",
+      "name": "Append to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [880, 0]
+    }
+  ],
+  "connections": {
+    "When clicking Execute workflow": {
+      "main": [[{ "node": "Settings", "type": "main", "index": 0 }]]
+    },
+    "Settings": {
+      "main": [[{ "node": "Parse the table", "type": "main", "index": 0 }]]
+    },
+    "Parse the table": {
+      "main": [[{ "node": "Fetch the rows", "type": "main", "index": 0 }]]
+    },
+    "Fetch the rows": {
+      "main": [[{ "node": "Append to Google Sheets", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
