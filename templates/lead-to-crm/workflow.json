@@ -1,0 +1,98 @@
+{
+  "name": "Enrich a lead from a URL into HubSpot with Gaffa",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Enrich a lead from a URL into HubSpot\n\n### How it works\nGive this workflow a lead's page, a personal site, a team page, a company contact page, and the lead lands in HubSpot.\n\n1. Set the lead's URL in the Settings node, plus a CSS selector when the details sit in a known page region.\n2. The Gaffa node loads the page in a real browser and extracts first name, last name, company, role and email.\n3. HubSpot creates the contact, or updates it when the email already exists.\n\n### Setup\n1. Install the Gaffa community node (@gaffa-dev/n8n-nodes-gaffa) if you have not already.\n2. Create an API key at gaffa.dev and add it as the Gaffa API credential.\n3. Create a private app in HubSpot with the crm.objects.contacts scopes and add its token as the HubSpot App Token credential.\n4. Put your lead's URL into the Settings node and run the workflow.\n\n### Customization tips\nThe selector narrows what the extraction reads, on large pages point it at the region with the contact details. Swap the manual trigger for a Webhook to enrich leads sent in by your forms or tools, map the incoming URL onto the Settings node. Add fields like phone or city to the schema in the Gaffa node's body and map them in the HubSpot node.",
+        "height": 700,
+        "width": 420
+      },
+      "id": "cccccccc-0000-0000-0000-000000000001",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-480, -240]
+    },
+    {
+      "parameters": {},
+      "id": "cccccccc-0000-0000-0000-000000000002",
+      "name": "When clicking Execute workflow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1e2e3e4-0000-0000-0000-000000000001",
+              "name": "lead_url",
+              "type": "string",
+              "value": "https://www.w3.org/People/Berners-Lee/"
+            },
+            {
+              "id": "e1e2e3e4-0000-0000-0000-000000000002",
+              "name": "selector",
+              "type": "string",
+              "value": "body"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cccccccc-0000-0000-0000-000000000003",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "operation": "sendRequest",
+        "body": "={{ JSON.stringify({ url: $json.lead_url, max_cache_age: 0, settings: { time_limit: 60000, actions: [ { type: \"parse_json\", selector: $json.selector, output_type: \"inline\", data_schema: { name: \"lead\", description: \"The lead's contact details on the page\", fields: [ { type: \"string\", name: \"first_name\", description: \"The person's first name, empty string when the page shows a company only\" }, { type: \"string\", name: \"last_name\", description: \"The person's last name, empty string when the page shows a company only\" }, { type: \"string\", name: \"company\", description: \"The company or organization name, empty string when the page shows none\" }, { type: \"string\", name: \"role\", description: \"The person's role or job title, empty string when the page shows none\" }, { type: \"string\", name: \"email\", description: \"The contact email address on the page, empty string when the page shows none\" } ] } } ] } }) }}",
+        "waitForCompletion": true,
+        "options": {}
+      },
+      "id": "cccccccc-0000-0000-0000-000000000004",
+      "name": "Enrich the lead",
+      "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
+      "typeVersion": 1,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "resource": "contact",
+        "operation": "upsert",
+        "email": "={{ $json.actions[0].output.email }}",
+        "additionalFields": {
+          "firstName": "={{ $json.actions[0].output.first_name }}",
+          "lastName": "={{ $json.actions[0].output.last_name }}",
+          "companyName": "={{ $json.actions[0].output.company }}",
+          "jobTitle": "={{ $json.actions[0].output.role }}"
+        },
+        "options": {}
+      },
+      "id": "cccccccc-0000-0000-0000-000000000005",
+      "name": "Upsert the contact",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [660, 0]
+    }
+  ],
+  "connections": {
+    "When clicking Execute workflow": {
+      "main": [[{ "node": "Settings", "type": "main", "index": 0 }]]
+    },
+    "Settings": {
+      "main": [[{ "node": "Enrich the lead", "type": "main", "index": 0 }]]
+    },
+    "Enrich the lead": {
+      "main": [[{ "node": "Upsert the contact", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
