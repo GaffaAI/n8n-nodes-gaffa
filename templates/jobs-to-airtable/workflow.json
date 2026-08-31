@@ -1,0 +1,119 @@
+{
+  "name": "Scrape job listings into Airtable with Gaffa",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Scrape job listings into Airtable\n\n### How it works\nPoint this workflow at any page that lists jobs and the listings land as records in your Airtable base.\n\n1. Set the page URL and the CSS selector of the listings container in the Settings node.\n2. The Gaffa node loads the page in a real browser and extracts every job as title, location and link.\n3. The One record per job node turns the list into one item per job.\n4. Airtable upserts the records keyed on the link, so re-runs update instead of duplicating.\n\n### Setup\n1. Install the Gaffa community node (@gaffa-dev/n8n-nodes-gaffa) if you have not already.\n2. Create an API key at gaffa.dev and add it as the Gaffa API credential.\n3. Connect your Airtable account and pick a base and table with the fields title, location and link.\n4. Put your page URL and listings selector into the Settings node and run the workflow.\n\n### Customization tips\nThe selector narrows what the extraction reads, pick the element wrapping the job list, for example `#jobs` or `.listings`, and find it with the browser dev tools. Swap the manual trigger for a Schedule Trigger to pull new listings on a cadence, the upsert keeps the table free of duplicates. Add fields like salary or company to the schema in the Gaffa node's body and to your table if the page shows them.",
+        "height": 740,
+        "width": 420
+      },
+      "id": "bbbbbbbb-0000-0000-0000-000000000001",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-480, -240]
+    },
+    {
+      "parameters": {},
+      "id": "bbbbbbbb-0000-0000-0000-000000000002",
+      "name": "When clicking Execute workflow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1d2d3d4-0000-0000-0000-000000000001",
+              "name": "page_url",
+              "type": "string",
+              "value": "https://news.ycombinator.com/jobs"
+            },
+            {
+              "id": "d1d2d3d4-0000-0000-0000-000000000002",
+              "name": "list_selector",
+              "type": "string",
+              "value": "#hnmain"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bbbbbbbb-0000-0000-0000-000000000003",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "operation": "sendRequest",
+        "body": "={{ JSON.stringify({ url: $json.page_url, max_cache_age: 0, settings: { time_limit: 60000, actions: [ { type: \"parse_json\", selector: $json.list_selector, output_type: \"inline\", data_schema: { name: \"job_list\", description: \"The job listings on the page\", fields: [ { type: \"array\", name: \"jobs\", description: \"One entry per job listing\", fields: [ { type: \"string\", name: \"title\", description: \"The job title as listed\" }, { type: \"string\", name: \"location\", description: \"The job location or remote note, empty string when the page shows none\" }, { type: \"string\", name: \"link\", description: \"The absolute link to the job listing\" } ] } ] } } ] } }) }}",
+        "waitForCompletion": true,
+        "options": {}
+      },
+      "id": "bbbbbbbb-0000-0000-0000-000000000004",
+      "name": "Extract the jobs",
+      "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
+      "typeVersion": 1,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "actions[0].output.jobs",
+        "options": {}
+      },
+      "id": "bbbbbbbb-0000-0000-0000-000000000005",
+      "name": "One record per job",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "resource": "record",
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": ["link"],
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "bbbbbbbb-0000-0000-0000-000000000006",
+      "name": "Upsert into Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [880, 0]
+    }
+  ],
+  "connections": {
+    "When clicking Execute workflow": {
+      "main": [[{ "node": "Settings", "type": "main", "index": 0 }]]
+    },
+    "Settings": {
+      "main": [[{ "node": "Extract the jobs", "type": "main", "index": 0 }]]
+    },
+    "Extract the jobs": {
+      "main": [[{ "node": "One record per job", "type": "main", "index": 0 }]]
+    },
+    "One record per job": {
+      "main": [[{ "node": "Upsert into Airtable", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
