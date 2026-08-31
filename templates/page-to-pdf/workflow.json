@@ -1,0 +1,129 @@
+{
+  "name": "Archive a page to PDF on a schedule with Gaffa",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Archive a page to PDF on a schedule\n\n### How it works\nOn a schedule, capture a web page to a PDF and save it to Google Drive, named by the date.\n\n1. The Schedule Trigger fires on your interval, daily by default.\n2. Set the page URL in the Settings node.\n3. The Gaffa node opens the page in a real browser and prints it to a PDF, returning a file link.\n4. The HTTP Request node downloads that PDF.\n5. Google Drive saves it as page-archive-<date>.pdf.\n\n### Setup\n1. Install the Gaffa community node (@gaffa-dev/n8n-nodes-gaffa) if you have not already.\n2. Create an API key at gaffa.dev and add it as the Gaffa API credential.\n3. Connect a Google Drive credential and pick the drive and folder on the Save node.\n4. Put the page URL into the Settings node and set your schedule.\n\n### Customization tips\nThe print action follows the site's print styles. Wide pages such as tables read better with orientation set to landscape, edge to edge designs want margin 0. Change the Schedule Trigger to hourly or weekly to match how often the page changes. Swap Google Drive for any storage node, the PDF arrives as binary data on the field named data.",
+        "height": 640,
+        "width": 460
+      },
+      "id": "eeeeeeee-0000-0000-0000-000000000001",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-560, -240]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "eeeeeeee-0000-0000-0000-000000000002",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1f2f3f4-0000-0000-0000-000000000001",
+              "name": "page_url",
+              "type": "string",
+              "value": "https://www.iana.org/help/example-domains"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "eeeeeeee-0000-0000-0000-000000000003",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "operation": "sendRequest",
+        "body": "={{ JSON.stringify({ url: $json.page_url, max_cache_age: 0, settings: { time_limit: 60000, actions: [ { type: \"print\", size: \"A4\", margin: 20, orientation: \"portrait\" } ] } }) }}",
+        "waitForCompletion": true,
+        "options": {}
+      },
+      "id": "eeeeeeee-0000-0000-0000-000000000004",
+      "name": "Capture the PDF",
+      "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
+      "typeVersion": 1,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.actions[0].output }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "eeeeeeee-0000-0000-0000-000000000005",
+      "name": "Fetch the PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "inputDataFieldName": "data",
+        "name": "={{ 'page-archive-' + $now.toFormat('yyyy-MM-dd') + '.pdf' }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive",
+          "cachedResultName": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root",
+          "cachedResultName": "/ (Root folder)"
+        },
+        "options": {}
+      },
+      "id": "eeeeeeee-0000-0000-0000-000000000006",
+      "name": "Save to Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [880, 0]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "Settings", "type": "main", "index": 0 }]]
+    },
+    "Settings": {
+      "main": [[{ "node": "Capture the PDF", "type": "main", "index": 0 }]]
+    },
+    "Capture the PDF": {
+      "main": [[{ "node": "Fetch the PDF", "type": "main", "index": 0 }]]
+    },
+    "Fetch the PDF": {
+      "main": [[{ "node": "Save to Drive", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
