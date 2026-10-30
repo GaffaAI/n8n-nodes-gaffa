@@ -1,129 +1,694 @@
 {
-  "name": "Archive a page to PDF on a schedule with Gaffa",
+  "name": "Archive changed web pages as PDFs in Google Drive with Google Sheets and Gaffa",
   "nodes": [
-    {
-      "parameters": {
-        "content": "## Archive a page to PDF on a schedule\n\n### How it works\nOn a schedule, capture a web page to a PDF and save it to Google Drive, named by the date.\n\n1. The Schedule Trigger fires on your interval, daily by default.\n2. Set the page URL in the Settings node.\n3. The Gaffa node opens the page in a real browser and prints it to a PDF, returning a file link.\n4. The HTTP Request node downloads that PDF.\n5. Google Drive saves it as page-archive-<date>.pdf.\n\n### Setup\n1. Install the Gaffa community node (@gaffa-dev/n8n-nodes-gaffa) if you have not already.\n2. Create an API key at gaffa.dev and add it as the Gaffa API credential.\n3. Connect a Google Drive credential and pick the drive and folder on the Save node.\n4. Put the page URL into the Settings node and set your schedule.\n\n### Customization tips\nThe print action follows the site's print styles. Wide pages such as tables read better with orientation set to landscape, edge to edge designs want margin 0. Change the Schedule Trigger to hourly or weekly to match how often the page changes. Swap Google Drive for any storage node, the PDF arrives as binary data on the field named data.",
-        "height": 640,
-        "width": 460
-      },
-      "id": "eeeeeeee-0000-0000-0000-000000000001",
-      "name": "Sticky Note",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [-560, -240]
-    },
     {
       "parameters": {
         "rule": {
           "interval": [
             {
-              "field": "days",
-              "daysInterval": 1,
               "triggerAtHour": 6
             }
           ]
         }
       },
-      "id": "eeeeeeee-0000-0000-0000-000000000002",
-      "name": "Schedule Trigger",
+      "id": "p1",
+      "name": "Every morning",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 0]
+      "position": [
+        0,
+        32
+      ]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "f1f2f3f4-0000-0000-0000-000000000001",
-              "name": "page_url",
+              "id": "p2-0",
+              "name": "sheet_url",
               "type": "string",
-              "value": "https://www.iana.org/help/example-domains"
+              "value": ""
+            },
+            {
+              "id": "p2-1",
+              "name": "sheet_name",
+              "type": "string",
+              "value": "Pages"
+            },
+            {
+              "id": "p2-2",
+              "name": "folder_url",
+              "type": "string",
+              "value": ""
+            },
+            {
+              "id": "p2-3",
+              "name": "wait_seconds",
+              "type": "number",
+              "value": 5
             }
           ]
         },
         "options": {}
       },
-      "id": "eeeeeeee-0000-0000-0000-000000000003",
+      "id": "p2",
       "name": "Settings",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [220, 0]
+      "position": [
+        224,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{ $('Settings').first().json.sheet_url }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Settings').first().json.sheet_name }}"
+        },
+        "options": {}
+      },
+      "id": "p3",
+      "name": "Read the pages",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f1",
+              "leftValue": "={{ $json['Page URL'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "p4",
+      "name": "Only pages with a URL",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        32
+      ]
     },
     {
       "parameters": {
         "operation": "sendRequest",
-        "body": "={{ JSON.stringify({ url: $json.page_url, max_cache_age: 0, settings: { time_limit: 60000, actions: [ { type: \"print\", size: \"A4\", margin: 20, orientation: \"portrait\" } ] } }) }}",
-        "waitForCompletion": true,
+        "body": "={{ JSON.stringify({\n  url: $json['Page URL'].trim(),\n  max_cache_age: 0,\n  settings: {\n    time_limit: 60000,\n    actions: [\n      { type: 'wait', time: $('Settings').first().json.wait_seconds * 1000 },\n      Object.assign({ type: 'generate_markdown', output_type: 'inline', custom_id: 'text' }, ($json.Selector || '').trim() ? { selector: $json.Selector.trim() } : {}),\n      { type: 'print', custom_id: 'pdf' }\n    ]\n  }\n}) }}",
         "options": {}
       },
-      "id": "eeeeeeee-0000-0000-0000-000000000004",
-      "name": "Capture the PDF",
+      "id": "p5",
+      "name": "Read the page",
       "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
       "typeVersion": 1,
-      "position": [440, 0]
+      "position": [
+        976,
+        32
+      ],
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "url": "={{ $json.actions[0].output }}",
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c3",
+              "leftValue": "={{ (($json.actions || []).find((action) => action.custom_id === 'text') || {}).output }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "p6",
+      "name": "Page read?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p7-0",
+              "name": "row_number",
+              "type": "number",
+              "value": "={{ $('Read the pages').item.json.row_number }}"
+            },
+            {
+              "id": "p7-1",
+              "name": "Last checked",
+              "type": "string",
+              "value": "={{ $today.toISODate() }}"
+            },
+            {
+              "id": "p7-2",
+              "name": "Status",
+              "type": "string",
+              "value": "={{ 'could not read the page: ' + ($json.error || 'no text found') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "p7",
+      "name": "Note the error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p8-0",
+              "name": "row_number",
+              "type": "number",
+              "value": "={{ $('Read the pages').item.json.row_number }}"
+            },
+            {
+              "id": "p8-1",
+              "name": "hash",
+              "type": "string",
+              "value": "={{ $json.actions.find((action) => action.custom_id === 'text').output.hash('sha256') }}"
+            },
+            {
+              "id": "p8-2",
+              "name": "pdf_url",
+              "type": "string",
+              "value": "={{ $json.actions.find((action) => action.custom_id === 'pdf').output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "p8",
+      "name": "Hash the page text",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1504,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.hash }}",
+              "rightValue": "={{ $('Read the pages').item.json['Last hash'] }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "p9",
+      "name": "Changed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1728,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.pdf_url }}",
         "options": {
           "response": {
             "response": {
-              "responseFormat": "file",
-              "outputPropertyName": "data"
+              "responseFormat": "file"
             }
           }
         }
       },
-      "id": "eeeeeeee-0000-0000-0000-000000000005",
+      "id": "p10",
       "name": "Fetch the PDF",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 0]
+      "position": [
+        1952,
+        -96
+      ]
     },
     {
       "parameters": {
-        "resource": "file",
-        "operation": "upload",
-        "inputDataFieldName": "data",
-        "name": "={{ 'page-archive-' + $now.toFormat('yyyy-MM-dd') + '.pdf' }}",
+        "name": "={{ ($('Read the pages').item.json.Name || 'page') + ' ' + $today.toISODate() + '.pdf' }}",
         "driveId": {
           "__rl": true,
           "mode": "list",
-          "value": "My Drive",
-          "cachedResultName": "My Drive"
+          "value": "My Drive"
         },
         "folderId": {
           "__rl": true,
-          "mode": "list",
-          "value": "root",
-          "cachedResultName": "/ (Root folder)"
+          "mode": "url",
+          "value": "={{ $('Settings').first().json.folder_url }}"
         },
-        "options": {}
+        "options": {
+          "simplifyOutput": false
+        }
       },
-      "id": "eeeeeeee-0000-0000-0000-000000000006",
+      "id": "p11",
       "name": "Save to Drive",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [880, 0]
+      "position": [
+        2176,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p12-0",
+              "name": "row_number",
+              "type": "number",
+              "value": "={{ $('Hash the page text').item.json.row_number }}"
+            },
+            {
+              "id": "p12-1",
+              "name": "Last hash",
+              "type": "string",
+              "value": "={{ $('Hash the page text').item.json.hash }}"
+            },
+            {
+              "id": "p12-2",
+              "name": "Last changed",
+              "type": "string",
+              "value": "={{ $today.toISODate() }}"
+            },
+            {
+              "id": "p12-3",
+              "name": "Last PDF",
+              "type": "string",
+              "value": "={{ $json.webViewLink }}"
+            },
+            {
+              "id": "p12-4",
+              "name": "Last checked",
+              "type": "string",
+              "value": "={{ $today.toISODate() }}"
+            },
+            {
+              "id": "p12-5",
+              "name": "Status",
+              "type": "string",
+              "value": "={{ $('Read the pages').item.json['Last hash'] ? 'changed, new PDF saved' : 'first PDF saved' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "p12",
+      "name": "Note the change",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2400,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p13-0",
+              "name": "row_number",
+              "type": "number",
+              "value": "={{ $json.row_number }}"
+            },
+            {
+              "id": "p13-1",
+              "name": "Last checked",
+              "type": "string",
+              "value": "={{ $today.toISODate() }}"
+            },
+            {
+              "id": "p13-2",
+              "name": "Status",
+              "type": "string",
+              "value": "no change"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "p13",
+      "name": "Note no change",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1952,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{ $('Settings').first().json.sheet_url }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Settings').first().json.sheet_name }}"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": [
+            "row_number"
+          ],
+          "value": {}
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "id": "p14",
+      "name": "Update the row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2832,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Archive changed web pages as PDFs in Google Drive with Google Sheets and Gaffa\n\nKeep a dated PDF of the pages you care about. Each morning the workflow checks the pages in a Google Sheet and saves a new PDF to Google Drive when the text has changed.\n\n### Who's it for\nCompliance and legal teams keeping a record of terms and policies, and teams tracking competitor pricing pages.\n\n### How it works\n- [Gaffa](https://gaffa.dev/?utm_source=n8n&utm_medium=referral&utm_campaign=n8n-nodes-gaffa) opens each page in a real browser and waits a few seconds, so JavaScript-rendered pages work. In one request it turns the page into text with `generate_markdown` and prints it to a PDF with `print`.\n- A hash of the text is compared with the one in the sheet. When it differs, the PDF goes to your Drive folder as \"Name date.pdf\" and the row gets the new hash, the date and a link.\n- The first run saves a PDF of every page. A page that cannot be read is noted in Status.\n\n### Setup\n1. Install the [Gaffa community node](https://www.npmjs.com/package/@gaffa-dev/n8n-nodes-gaffa).\n2. Create an API key at [gaffa.dev](https://gaffa.dev/?utm_source=n8n&utm_medium=referral&utm_campaign=n8n-nodes-gaffa) and add it as the Gaffa API credential.\n3. Create a Google Sheet with a tab named Pages and the columns Name, Page URL, Selector, Last hash, Last changed, Last PDF, Last checked and Status, and add your pages.\n4. Create a folder in Google Drive for the PDFs.\n5. Connect Google Sheets and Google Drive, put the sheet URL and the folder URL in Settings and publish.\n\n### Requirements\n- A Gaffa API key\n- A Google account for Sheets and Drive\n\n### Customization tips\n- Pages with dates or ads change daily. Put a CSS selector like `main` in the Selector column to compare only that part. A selector that matches nothing shows as a failed read.\n- Raise `wait_seconds` in Settings for pages that load slowly.\n- Add margin or orientation to the print action in the Read the page node.\n- Change the time in the Every morning node.",
+        "height": 736,
+        "width": 880
+      },
+      "id": "n1",
+      "name": "Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 1. Read the watchlist\nEvery morning, read the pages from the Google Sheet and skip rows without a URL.",
+        "height": 352,
+        "width": 944,
+        "color": 7
+      },
+      "id": "n2",
+      "name": "1. Read the watchlist",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 2. Read each page\nGaffa turns the page into text and prints it to a PDF in one request. A page that cannot be read is noted in the sheet.",
+        "height": 704,
+        "width": 480,
+        "color": 7
+      },
+      "id": "n3",
+      "name": "2. Read each page",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        880,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 3. Save a PDF when the page changed\nCompare a hash of the page text with the last one. When it differs, save the PDF to Google Drive and note the new hash and link.",
+        "height": 576,
+        "width": 1168,
+        "color": 7
+      },
+      "id": "n4",
+      "name": "3. Save a PDF when the page changed",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 4. Update the sheet\nWrite the date, the status and, for changed pages, the new hash and PDF link back to the row.",
+        "height": 352,
+        "width": 272,
+        "color": 7
+      },
+      "id": "n5",
+      "name": "4. Update the sheet",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2752,
+        144
+      ]
     }
   ],
   "connections": {
-    "Schedule Trigger": {
-      "main": [[{ "node": "Settings", "type": "main", "index": 0 }]]
+    "Every morning": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Settings": {
-      "main": [[{ "node": "Capture the PDF", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Read the pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Capture the PDF": {
-      "main": [[{ "node": "Fetch the PDF", "type": "main", "index": 0 }]]
+    "Read the pages": {
+      "main": [
+        [
+          {
+            "node": "Only pages with a URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only pages with a URL": {
+      "main": [
+        [
+          {
+            "node": "Read the page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read the page": {
+      "main": [
+        [
+          {
+            "node": "Page read?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Page read?": {
+      "main": [
+        [
+          {
+            "node": "Hash the page text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Note the error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Note the error": {
+      "main": [
+        [
+          {
+            "node": "Update the row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hash the page text": {
+      "main": [
+        [
+          {
+            "node": "Changed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Changed?": {
+      "main": [
+        [
+          {
+            "node": "Fetch the PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Note no change",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Fetch the PDF": {
-      "main": [[{ "node": "Save to Drive", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Save to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Drive": {
+      "main": [
+        [
+          {
+            "node": "Note the change",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Note the change": {
+      "main": [
+        [
+          {
+            "node": "Update the row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Note no change": {
+      "main": [
+        [
+          {
+            "node": "Update the row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   }
 }

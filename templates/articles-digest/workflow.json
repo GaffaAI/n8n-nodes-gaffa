@@ -1,36 +1,34 @@
 {
-  "name": "Watch a page for new articles and email a digest with Gaffa",
+  "name": "Email new article digests from any web page with Gaffa and Resend",
   "nodes": [
     {
-      "parameters": {
-        "content": "## Watch a page for new articles and email a digest\n\n### How it works\nPoint this workflow at any page that lists articles and get an email whenever new ones appear.\n\n1. Set the page URL and the CSS selector of the article list in the Settings node.\n2. The Gaffa node loads the page in a real browser and extracts every article as title, url and date.\n3. The Keep only new articles node remembers the URLs it has seen and lets only new ones through.\n4. New articles are formatted into one digest and sent by email.\n\n### Setup\n1. Install the Gaffa community node (@gaffa-dev/n8n-nodes-gaffa) if you have not already.\n2. Create an API key at gaffa.dev and add it as the Gaffa API credential.\n3. Add your SMTP credential and the from and to addresses in the Send the digest node.\n4. Put your page URL and list selector into the Settings node, then activate the workflow.\n\n### Customization tips\nThe seen URLs only persist in production runs, so a manual test run always emails the full list. Adjust the Schedule Trigger to how often the page updates. The selector narrows what the extraction reads, pick the element that wraps the article list, for example `#main` or `.post-list`.",
-        "height": 720,
-        "width": 420
-      },
-      "id": "aaaaaaaa-0000-0000-0000-000000000001",
-      "name": "Sticky Note",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [-480, -240]
-    },
-    {
+      "id": "f8c27050-5dcd-4ff2-a1f8-74ff04ae30b1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        2112,
+        272
+      ],
       "parameters": {
         "rule": {
           "interval": [
             {
-              "field": "hours",
-              "hoursInterval": 1
+              "field": "hours"
             }
           ]
         }
-      },
-      "id": "aaaaaaaa-0000-0000-0000-000000000002",
-      "name": "Schedule Trigger",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [0, 0]
+      }
     },
     {
+      "id": "1977cdc8-8022-4663-8278-ac4ef1e20070",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2336,
+        272
+      ],
       "parameters": {
         "assignments": {
           "assignments": [
@@ -38,7 +36,7 @@
               "id": "c1c2c3c4-0000-0000-0000-000000000001",
               "name": "page_url",
               "type": "string",
-              "value": "https://news.ycombinator.com"
+              "value": "https://news.ycombinator.com/newest"
             },
             {
               "id": "c1c2c3c4-0000-0000-0000-000000000002",
@@ -49,93 +47,339 @@
           ]
         },
         "options": {}
-      },
-      "id": "aaaaaaaa-0000-0000-0000-000000000003",
-      "name": "Settings",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [220, 0]
+      }
     },
     {
-      "parameters": {
-        "operation": "sendRequest",
-        "body": "={{ JSON.stringify({ url: $json.page_url, max_cache_age: 0, settings: { time_limit: 60000, actions: [ { type: \"parse_json\", selector: $json.list_selector, output_type: \"inline\", data_schema: { name: \"article_list\", description: \"The articles listed on the page\", fields: [ { type: \"array\", name: \"articles\", description: \"One entry per article in the list\", fields: [ { type: \"string\", name: \"title\", description: \"The article title\" }, { type: \"string\", name: \"url\", description: \"The absolute link to the article\" }, { type: \"string\", name: \"date\", description: \"The publication date or age as shown, empty string when the page shows none\" } ] } ] } } ] } }) }}",
-        "waitForCompletion": true,
-        "options": {}
-      },
-      "id": "aaaaaaaa-0000-0000-0000-000000000004",
+      "id": "99f75ffa-ee8e-4d1a-9547-489ef62e5b19",
       "name": "Extract the articles",
       "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
       "typeVersion": 1,
-      "position": [440, 0]
+      "position": [
+        3024,
+        272
+      ],
+      "parameters": {
+        "operation": "sendRequest",
+        "body": "={{ JSON.stringify($json.gaffaBody) }}",
+        "options": {}
+      }
     },
     {
-      "parameters": {
-        "fieldToSplitOut": "actions[0].output.articles",
-        "options": {}
-      },
-      "id": "aaaaaaaa-0000-0000-0000-000000000005",
+      "id": "72ee916d-7917-42e2-89a4-24d9cd434f34",
       "name": "One item per article",
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
-      "position": [660, 0]
+      "position": [
+        3248,
+        272
+      ],
+      "parameters": {
+        "fieldToSplitOut": "actions[0].output.articles",
+        "options": {}
+      }
     },
     {
-      "parameters": {
-        "jsCode": "// Let only articles through whose URL we have not seen before.\n// Seen URLs live in workflow static data, which only persists in production runs.\nconst staticData = $getWorkflowStaticData('global');\nconst seen = staticData.seenUrls || [];\nconst newItems = $input.all().filter(item => item.json.url && !seen.includes(item.json.url));\nstaticData.seenUrls = seen.concat(newItems.map(item => item.json.url)).slice(-500);\nreturn newItems;"
-      },
-      "id": "aaaaaaaa-0000-0000-0000-000000000006",
+      "id": "871db872-b752-4633-91e4-0e892935016d",
       "name": "Keep only new articles",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [880, 0]
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        3472,
+        272
+      ],
+      "parameters": {
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "seen_articles"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "url",
+              "keyValue": "={{ $json.url }}"
+            }
+          ]
+        }
+      }
     },
     {
-      "parameters": {
-        "jsCode": "// Build one digest email out of all new articles.\nconst escapeHtml = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst items = $input.all();\nconst lines = items.map(item => {\n  const date = item.json.date ? ` (${escapeHtml(item.json.date)})` : '';\n  return `<li><a href=\"${escapeHtml(item.json.url)}\">${escapeHtml(item.json.title)}</a>${date}</li>`;\n});\nconst count = items.length;\nreturn [{ json: {\n  subject: `${count} new article${count === 1 ? '' : 's'} on your watched page`,\n  html: `<p>New articles since the last check:</p>\\n<ul>\\n${lines.join('\\n')}\\n</ul>`\n} }];"
-      },
-      "id": "aaaaaaaa-0000-0000-0000-000000000007",
+      "id": "19813b9f-8d38-44d3-9a3a-cfcdffe55e3c",
       "name": "Format the digest",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 0]
+      "position": [
+        3920,
+        272
+      ],
+      "parameters": {
+        "jsCode": "// Build one digest email out of the new articles.\nconst escapeHtml = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\n\nconst articles = $('Keep only new articles').all().map(item => item.json);\nconst lines = articles.map(article => {\n  const date = article.date ? ` (${escapeHtml(article.date)})` : '';\n  return `<li><a href=\"${escapeHtml(article.url)}\">${escapeHtml(article.title)}</a>${date}</li>`;\n});\nconst count = articles.length;\n\nreturn [{ json: {\n  subject: `${count} new article${count === 1 ? '' : 's'} on your watched page`,\n  html: `<p>New articles since the last check:</p>\\n<ul>\\n${lines.join('\\n')}\\n</ul>`\n} }];"
+      }
     },
     {
+      "id": "e7d3c05c-8bc6-45ab-987a-fb8a819843f5",
+      "name": "Send the digest",
+      "webhookId": "f98f4aaf-7612-4ca5-8756-643dca1c7a86",
+      "type": "n8n-nodes-resend.resend",
+      "typeVersion": 1,
+      "position": [
+        4144,
+        272
+      ],
       "parameters": {
-        "fromEmail": "",
-        "toEmail": "",
+        "from": "onboarding@resend.dev",
+        "to": "recipient@example.com",
         "subject": "={{ $json.subject }}",
         "html": "={{ $json.html }}",
+        "additionalOptions": {}
+      }
+    },
+    {
+      "id": "f6417cfd-06c0-4a7e-8c2b-24548cf73c1c",
+      "name": "Build the Gaffa request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        272
+      ],
+      "parameters": {
+        "jsCode": "// The Gaffa request body. Change the fields here if you want other data from the page.\nconst gaffaBody = {\n  url: $('Settings').first().json.page_url,\n  max_cache_age: 0,\n  settings: {\n    time_limit: 60000,\n    actions: [\n      {\n        type: 'parse_json',\n        selector: $('Settings').first().json.list_selector,\n        output_type: 'inline',\n        data_schema: {\n          name: 'article_list',\n          description: 'The articles listed on the page',\n          fields: [\n            {\n              type: 'array',\n              name: 'articles',\n              description: 'One entry per article in the list',\n              fields: [\n                { type: 'string', name: 'title', description: 'The article title' },\n                { type: 'string', name: 'url', description: 'The absolute link to the article' },\n                {\n                  type: 'string',\n                  name: 'date',\n                  description: 'The publication date or age as shown, empty string when the page shows none',\n                },\n              ],\n            },\n          ],\n        },\n      },\n    ],\n  },\n};\n\nreturn [{ json: { gaffaBody } }];"
+      }
+    },
+    {
+      "id": "99d832fe-147d-4f64-becf-f204bb7623dc",
+      "name": "Record the article",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        3696,
+        272
+      ],
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "seen_articles"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "url": "={{ $json.url }}"
+          }
+        },
         "options": {}
-      },
-      "id": "aaaaaaaa-0000-0000-0000-000000000008",
-      "name": "Send the digest",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
-      "position": [1320, 0]
+      }
+    },
+    {
+      "id": "04e56d76-f9f2-4b74-ad31-ea14c3be2460",
+      "name": "Create the table if missing",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        2560,
+        272
+      ],
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "seen_articles",
+        "columns": {
+          "column": [
+            {
+              "name": "url"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      }
+    },
+    {
+      "id": "0ef6b5ed-5ac6-4bbd-bc1d-806cf90fa411",
+      "name": "Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1152,
+        0
+      ],
+      "parameters": {
+        "content": "## Email new article digests from any web page with Gaffa and Resend\n\nGet an email whenever a page you follow publishes something new. The workflow checks the page on a schedule, remembers what it has already sent, and mails the new items as one digest. No feed needed.\n\n### Who's it for\nAnyone following a blog, a news site or a changelog that offers no feed and no newsletter.\n\n### How it works\n- The Schedule Trigger checks the page on a cadence you pick, hourly by default.\n- [Gaffa](https://gaffa.dev/?utm_source=n8n&utm_medium=referral&utm_campaign=n8n-nodes-gaffa) loads the page in a real browser, so JavaScript-rendered lists work, and extracts every article as title, url and date.\n- The Keep only new articles node compares each URL against a data table of what has already been sent.\n- New articles are recorded in the table, formatted into one HTML digest and sent through Resend.\n\n### Setup\n1. Install the [Gaffa community node](https://www.npmjs.com/package/@gaffa-dev/n8n-nodes-gaffa) and the [Resend community node](https://www.npmjs.com/package/n8n-nodes-resend).\n2. Create an API key at [gaffa.dev](https://gaffa.dev/?utm_source=n8n&utm_medium=referral&utm_campaign=n8n-nodes-gaffa) and add it as the Gaffa API credential.\n3. Connect your Resend account in Send the digest and set the from and to addresses.\n4. Put the page URL and the article list's CSS selector into the Settings node, then activate the workflow.\n\n### Requirements\n- A Gaffa API key\n- A Resend account\n\n### Customization tips\n- Adjust the Schedule Trigger to how often the page updates.\n- The selector narrows what Gaffa reads, pick the element that wraps the article list.\n- Clear the seen_articles data table to get the full list again in the next digest.\n",
+        "height": 600,
+        "width": 880
+      }
+    },
+    {
+      "id": "eca8e1f4-d7fc-4764-b528-841f82220a21",
+      "name": "1. Configure",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2064,
+        160
+      ],
+      "parameters": {
+        "content": "### 1. Configure\nSet the page URL and the list selector, and create the data table that remembers what has been sent.",
+        "height": 288,
+        "width": 656,
+        "color": 7
+      }
+    },
+    {
+      "id": "bb5d5607-e8a9-44ed-b9d2-257288623485",
+      "name": "2. Collect the articles",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2736,
+        160
+      ],
+      "parameters": {
+        "content": "### 2. Collect the articles\nGaffa loads the page in a real browser and returns every article as title, url and date.",
+        "height": 288,
+        "width": 672,
+        "color": 7
+      }
+    },
+    {
+      "id": "98573c8c-b685-441f-8790-1b1bc4a665e5",
+      "name": "3. Keep only new articles",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3424,
+        160
+      ],
+      "parameters": {
+        "content": "### 3. Keep only new articles\nDrop anything that is already in the table, then record the articles that get sent.",
+        "height": 288,
+        "width": 656,
+        "color": 7
+      }
+    },
+    {
+      "id": "f1a2116e-bf7f-4911-862f-14e0fdb5e7fd",
+      "name": "4. Send the digest",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4096,
+        160
+      ],
+      "parameters": {
+        "content": "### 4. Send the digest\nNew articles are formatted into one HTML digest and sent with Resend.",
+        "height": 288,
+        "width": 288,
+        "color": 7
+      }
     }
   ],
   "connections": {
     "Schedule Trigger": {
-      "main": [[{ "node": "Settings", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Settings": {
-      "main": [[{ "node": "Extract the articles", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Create the table if missing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create the table if missing": {
+      "main": [
+        [
+          {
+            "node": "Build the Gaffa request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build the Gaffa request": {
+      "main": [
+        [
+          {
+            "node": "Extract the articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Extract the articles": {
-      "main": [[{ "node": "One item per article", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "One item per article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "One item per article": {
-      "main": [[{ "node": "Keep only new articles", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Keep only new articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Keep only new articles": {
-      "main": [[{ "node": "Format the digest", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Record the article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record the article": {
+      "main": [
+        [
+          {
+            "node": "Format the digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Format the digest": {
-      "main": [[{ "node": "Send the digest", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Send the digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   }
 }

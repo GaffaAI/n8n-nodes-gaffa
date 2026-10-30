@@ -1,98 +1,561 @@
 {
-  "name": "Enrich a lead from a URL into HubSpot with Gaffa",
+  "name": "Qualify inbound website leads from forms with Gaffa and HubSpot",
   "nodes": [
     {
+      "id": "a1",
+      "name": "Lead form",
+      "webhookId": "2f6c1d1e-9b7a-4c55-8d0e-5a1e0d853001",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        32
+      ],
       "parameters": {
-        "content": "## Enrich a lead from a URL into HubSpot\n\n### How it works\nGive this workflow a lead's page, a personal site, a team page, a company contact page, and the lead lands in HubSpot.\n\n1. Set the lead's URL in the Settings node, plus a CSS selector when the details sit in a known page region.\n2. The Gaffa node loads the page in a real browser and extracts first name, last name, company, role and email.\n3. HubSpot creates the contact, or updates it when the email already exists.\n\n### Setup\n1. Install the Gaffa community node (@gaffa-dev/n8n-nodes-gaffa) if you have not already.\n2. Create an API key at gaffa.dev and add it as the Gaffa API credential.\n3. Create a private app in HubSpot with the crm.objects.contacts scopes and add its token as the HubSpot App Token credential.\n4. Put your lead's URL into the Settings node and run the workflow.\n\n### Customization tips\nThe selector narrows what the extraction reads, on large pages point it at the region with the contact details. Swap the manual trigger for a Webhook to enrich leads sent in by your forms or tools, map the incoming URL onto the Settings node. Add fields like phone or city to the schema in the Gaffa node's body and map them in the HubSpot node.",
-        "height": 700,
-        "width": 420
-      },
-      "id": "cccccccc-0000-0000-0000-000000000001",
-      "name": "Sticky Note",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [-480, -240]
-    },
-    {
-      "parameters": {},
-      "id": "cccccccc-0000-0000-0000-000000000002",
-      "name": "When clicking Execute workflow",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [0, 0]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
+        "formTitle": "Talk to our team",
+        "formDescription": "Tell us who you are and we will get back to you.",
+        "formFields": {
+          "values": [
             {
-              "id": "e1e2e3e4-0000-0000-0000-000000000001",
-              "name": "lead_url",
-              "type": "string",
-              "value": "https://www.w3.org/People/Berners-Lee/"
+              "fieldLabel": "First name",
+              "requiredField": true
             },
             {
-              "id": "e1e2e3e4-0000-0000-0000-000000000002",
-              "name": "selector",
-              "type": "string",
-              "value": "body"
+              "fieldLabel": "Last name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Work email",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Company website",
+              "placeholder": "https://example.com",
+              "requiredField": true
             }
           ]
         },
         "options": {}
-      },
-      "id": "cccccccc-0000-0000-0000-000000000003",
+      }
+    },
+    {
+      "id": "a2",
       "name": "Settings",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [220, 0]
-    },
-    {
+      "position": [
+        224,
+        32
+      ],
       "parameters": {
-        "operation": "sendRequest",
-        "body": "={{ JSON.stringify({ url: $json.lead_url, max_cache_age: 0, settings: { time_limit: 60000, actions: [ { type: \"parse_json\", selector: $json.selector, output_type: \"inline\", data_schema: { name: \"lead\", description: \"The lead's contact details on the page\", fields: [ { type: \"string\", name: \"first_name\", description: \"The person's first name, empty string when the page shows a company only\" }, { type: \"string\", name: \"last_name\", description: \"The person's last name, empty string when the page shows a company only\" }, { type: \"string\", name: \"company\", description: \"The company or organization name, empty string when the page shows none\" }, { type: \"string\", name: \"role\", description: \"The person's role or job title, empty string when the page shows none\" }, { type: \"string\", name: \"email\", description: \"The contact email address on the page, empty string when the page shows none\" } ] } } ] } }) }}",
-        "waitForCompletion": true,
-        "options": {}
-      },
-      "id": "cccccccc-0000-0000-0000-000000000004",
-      "name": "Enrich the lead",
-      "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
-      "typeVersion": 1,
-      "position": [440, 0]
-    },
-    {
-      "parameters": {
-        "authentication": "appToken",
-        "resource": "contact",
-        "operation": "upsert",
-        "email": "={{ $json.actions[0].output.email }}",
-        "additionalFields": {
-          "firstName": "={{ $json.actions[0].output.first_name }}",
-          "lastName": "={{ $json.actions[0].output.last_name }}",
-          "companyName": "={{ $json.actions[0].output.company }}",
-          "jobTitle": "={{ $json.actions[0].output.role }}"
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "ideal_customer",
+              "type": "string",
+              "value": "B2B software companies that sell to other businesses"
+            },
+            {
+              "id": "s2",
+              "name": "hubspot_owner_id",
+              "type": "number",
+              "value": 0
+            }
+          ]
         },
         "options": {}
-      },
-      "id": "cccccccc-0000-0000-0000-000000000005",
-      "name": "Upsert the contact",
+      }
+    },
+    {
+      "id": "a3",
+      "name": "Read the company website",
+      "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
+      "typeVersion": 1,
+      "onError": "continueRegularOutput",
+      "position": [
+        1008,
+        32
+      ],
+      "parameters": {
+        "operation": "extract",
+        "url": "={{ $('Lead form').item.json['Company website'] }}",
+        "fields": {
+          "field": [
+            {
+              "name": "company_name",
+              "description": "The company's name"
+            },
+            {
+              "name": "industry",
+              "description": "The company's industry in two or three words"
+            },
+            {
+              "name": "what_they_sell",
+              "description": "One sentence on what the company sells and to whom"
+            },
+            {
+              "name": "fits_icp",
+              "type": "boolean",
+              "description": "={{ 'True when the company matches this ideal customer: ' + $('Settings').item.json.ideal_customer }}"
+            },
+            {
+              "name": "fit_reason",
+              "description": "One short sentence on why the company does or does not match the ideal customer"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a4",
+      "name": "Website read?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1232,
+        64
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c3",
+              "leftValue": "={{ $json.actions?.[0]?.output?.company_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a5",
+      "name": "Fits the ideal customer?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1456,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.actions[0].output.fits_icp }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a6",
+      "name": "Add as open lead",
       "type": "n8n-nodes-base.hubspot",
       "typeVersion": 2.2,
-      "position": [660, 0]
+      "position": [
+        1744,
+        -160
+      ],
+      "parameters": {
+        "authentication": "appToken",
+        "email": "={{ $('Lead form').item.json['Work email'] }}",
+        "additionalFields": {
+          "companyName": "={{ $('Read the company website').item.json.actions[0].output.company_name }}",
+          "firstName": "={{ $('Lead form').item.json['First name'] }}",
+          "industry": "={{ $('Read the company website').item.json.actions[0].output.industry }}",
+          "lastName": "={{ $('Lead form').item.json['Last name'] }}",
+          "leadStatus": "OPEN",
+          "websiteUrl": "={{ $('Lead form').item.json['Company website'] }}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a7",
+      "name": "Create a task for sales",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1968,
+        -160
+      ],
+      "parameters": {
+        "authentication": "appToken",
+        "resource": "engagement",
+        "type": "task",
+        "dueDate": "={{ $now.plus(1, 'day').toISO() }}",
+        "metadata": {
+          "body": "={{ ($('Read the company website').item.json.actions[0].output.what_they_sell ?? '') + '\\n\\nWhy they fit: ' + ($('Read the company website').item.json.actions[0].output.fit_reason ?? '') }}",
+          "forObjectType": "CONTACT",
+          "status": "NOT_STARTED",
+          "subject": "={{ 'Follow up with ' + $('Lead form').item.json['First name'] + ' ' + $('Lead form').item.json['Last name'] + ' at ' + $('Read the company website').item.json.actions[0].output.company_name }}"
+        },
+        "additionalFields": {
+          "associations": {
+            "contactIds": "={{ $json.vid }}",
+            "ownerId": "={{ $('Settings').item.json.hubspot_owner_id }}"
+          }
+        }
+      }
+    },
+    {
+      "id": "a8",
+      "name": "Add as unqualified lead",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1744,
+        32
+      ],
+      "parameters": {
+        "authentication": "appToken",
+        "email": "={{ $('Lead form').item.json['Work email'] }}",
+        "additionalFields": {
+          "companyName": "={{ $('Read the company website').item.json.actions[0].output.company_name }}",
+          "firstName": "={{ $('Lead form').item.json['First name'] }}",
+          "industry": "={{ $('Read the company website').item.json.actions[0].output.industry }}",
+          "lastName": "={{ $('Lead form').item.json['Last name'] }}",
+          "leadStatus": "UNQUALIFIED",
+          "websiteUrl": "={{ $('Lead form').item.json['Company website'] }}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a9",
+      "name": "Add as new lead to review",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1744,
+        224
+      ],
+      "parameters": {
+        "authentication": "appToken",
+        "email": "={{ $('Lead form').item.json['Work email'] }}",
+        "additionalFields": {
+          "firstName": "={{ $('Lead form').item.json['First name'] }}",
+          "lastName": "={{ $('Lead form').item.json['Last name'] }}",
+          "leadStatus": "NEW",
+          "websiteUrl": "={{ $('Lead form').item.json['Company website'] }}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a10",
+      "name": "Find the contact in HubSpot",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "alwaysOutputData": true,
+      "position": [
+        448,
+        32
+      ],
+      "parameters": {
+        "authentication": "appToken",
+        "operation": "search",
+        "limit": 1,
+        "filterGroupsUi": {
+          "filterGroupsValues": [
+            {
+              "filtersUi": {
+                "filterValues": [
+                  {
+                    "propertyName": "email|string",
+                    "value": "={{ $('Lead form').item.json['Work email'] }}"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      }
+    },
+    {
+      "id": "a11",
+      "name": "New lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        32
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c4",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a12",
+      "name": "Create a review task",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1968,
+        224
+      ],
+      "parameters": {
+        "authentication": "appToken",
+        "resource": "engagement",
+        "type": "task",
+        "dueDate": "={{ $now.plus(1, 'day').toISO() }}",
+        "metadata": {
+          "body": "={{ $('Lead form').item.json['Company website'] + ' could not be read: ' + ($('Read the company website').item.json.error || 'no company details found on the page') }}",
+          "forObjectType": "CONTACT",
+          "status": "NOT_STARTED",
+          "subject": "={{ 'Review ' + $('Lead form').item.json['First name'] + ' ' + $('Lead form').item.json['Last name'] + ', their website could not be read' }}"
+        },
+        "additionalFields": {
+          "associations": {
+            "contactIds": "={{ $json.vid }}",
+            "ownerId": "={{ $('Settings').item.json.hubspot_owner_id }}"
+          }
+        }
+      }
+    },
+    {
+      "id": "n1",
+      "name": "Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        -256
+      ],
+      "parameters": {
+        "content": "## Qualify inbound website leads from forms with Gaffa and HubSpot\n\nCheck every new lead against your ideal customer before it lands in HubSpot.\n\n### Who's it for\nFounders and sales teams who want to follow up on the right leads first.\n\n### How it works\n- The form asks for the name, work email and company website. Leads already in HubSpot, matched on the email, are skipped.\n- [Gaffa](https://gaffa.dev/?utm_source=n8n&utm_medium=referral&utm_campaign=n8n-nodes-gaffa) loads the website in a real browser and its `parse_json` action returns the company name, industry, what they sell and whether they match your ideal customer from the Settings node. No AI key needed.\n- A lead that fits goes into HubSpot as Open with a follow-up task for sales, and one that does not as Unqualified.\n- If the website cannot be read, the lead is still added as New, with a review task that says why.\n\n### Setup\n1. Install the [Gaffa community node](https://www.npmjs.com/package/@gaffa-dev/n8n-nodes-gaffa).\n2. Create an API key at [gaffa.dev](https://gaffa.dev/?utm_source=n8n&utm_medium=referral&utm_campaign=n8n-nodes-gaffa) and add it as the Gaffa API credential.\n3. In HubSpot, create a service key under Settings > Integrations > Service Keys with the `crm.objects.contacts` read and write scopes and add it as the HubSpot Service Key credential.\n4. Describe your ideal customer in the Settings node.\n5. Publish the workflow and share the form's production URL.\n\n### Requirements\n- A Gaffa API key\n- A HubSpot service key with the `crm.objects.contacts` read and write scopes\n\n### Customization tips\n- Add questions to the form, like company size, and map them in the three nodes that add the lead.\n- Add fields to the Read the company website node, like pricing model, and use them in the check.\n- Put a HubSpot owner ID in Settings to assign the tasks.",
+        "height": 688,
+        "width": 880
+      }
+    },
+    {
+      "id": "n2",
+      "name": "1. Collect the lead",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        -96
+      ],
+      "parameters": {
+        "content": "### 1. Collect the lead\nThe form asks for the name, work email and company website. Describe your ideal customer in Settings. Leads already in HubSpot stop here.",
+        "height": 336,
+        "width": 976,
+        "color": 7
+      }
+    },
+    {
+      "id": "n3",
+      "name": "2. Read and qualify",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        912,
+        -96
+      ],
+      "parameters": {
+        "content": "### 2. Read and qualify\nGaffa reads the website and checks the company against your ideal customer. A site that cannot be read skips the check.",
+        "height": 336,
+        "width": 704,
+        "color": 7
+      }
+    },
+    {
+      "id": "n4",
+      "name": "3. Add to HubSpot",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        -288
+      ],
+      "parameters": {
+        "content": "### 3. Add to HubSpot\nOpen with a task for sales when the lead fits, Unqualified when it does not, New with a review task when the website could not be read.",
+        "height": 704,
+        "width": 544,
+        "color": 7
+      }
     }
   ],
   "connections": {
-    "When clicking Execute workflow": {
-      "main": [[{ "node": "Settings", "type": "main", "index": 0 }]]
+    "Lead form": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Settings": {
-      "main": [[{ "node": "Enrich the lead", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Find the contact in HubSpot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Enrich the lead": {
-      "main": [[{ "node": "Upsert the contact", "type": "main", "index": 0 }]]
+    "Find the contact in HubSpot": {
+      "main": [
+        [
+          {
+            "node": "New lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New lead?": {
+      "main": [
+        [
+          {
+            "node": "Read the company website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read the company website": {
+      "main": [
+        [
+          {
+            "node": "Website read?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Website read?": {
+      "main": [
+        [
+          {
+            "node": "Fits the ideal customer?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add as new lead to review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fits the ideal customer?": {
+      "main": [
+        [
+          {
+            "node": "Add as open lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add as unqualified lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add as open lead": {
+      "main": [
+        [
+          {
+            "node": "Create a task for sales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add as new lead to review": {
+      "main": [
+        [
+          {
+            "node": "Create a review task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   }
 }

@@ -1,364 +1,35 @@
 {
-  "name": "URLs to markdown files in Drive with Gaffa",
+  "name": "Convert URLs from Google Sheets to Drive markdown files with Gaffa",
   "nodes": [
     {
-      "parameters": {
-        "content": "## Batch convert URLs to markdown files in Drive\n\n### How it works\nKeep a list of URLs in a Google Sheet. On a schedule, this workflow converts each page to clean markdown with Gaffa and saves it to Google Drive, then marks the row done so the next run skips it. A failed page is marked with an error and the run carries on.\n\n### Setup\n1. Install the Gaffa community node (@gaffa-dev/n8n-nodes-gaffa) and add your Gaffa API key.\n2. Connect Google Sheets and Google Drive.\n3. Copy the sample sheet, add your URLs, pick your Drive folder, set the schedule, activate.\n\n### Customization tips\nSet a CSS selector in the Gaffa node to keep only the main content. Change the schedule to match how often you add URLs. Adjust the loop batch size to control pages per pass.",
-        "height": 524,
-        "width": 556,
-        "color": 3
-      },
-      "id": "a1000000-0000-0000-0000-000000000001",
-      "name": "Overview",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -544,
-        96
-      ]
-    },
-    {
-      "parameters": {
-        "content": "### 1. Read and filter\nRun on a schedule, read the sheet, and keep only rows that have a URL and are not done yet.",
-        "height": 124,
-        "width": 300,
-        "color": 7
-      },
-      "id": "a1000000-0000-0000-0000-000000000002",
-      "name": "Section read",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        80,
-        160
-      ]
-    },
-    {
-      "parameters": {
-        "content": "### 2. Loop and convert\nWork through the URLs one batch at a time. Gaffa loads each page in a real browser and returns clean markdown. On failure the row is marked error and the loop continues.",
-        "height": 204,
-        "width": 150,
-        "color": 7
-      },
-      "id": "a1000000-0000-0000-0000-000000000003",
-      "name": "Section convert",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        352,
-        80
-      ]
-    },
-    {
-      "parameters": {
-        "content": "### 3. Save and mark done\nStrip leftover links and navigation, save the markdown as a file in Drive, then mark the sheet row done.",
-        "height": 124,
-        "width": 320,
-        "color": 7
-      },
-      "id": "a1000000-0000-0000-0000-000000000004",
-      "name": "Section save",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        1632,
-        160
-      ]
-    },
-    {
-      "parameters": {
-        "content": "### Sample sheet\nCopy this Google Sheet as a starting point (a url column and a status column):\n\nhttps://docs.google.com/spreadsheets/d/1Rcqheojp2cy66kp2aEwb7bU8ByISlZJ4BBVxJsyXi6I/copy",
-        "height": 176,
-        "width": 300,
-        "color": 4
-      },
-      "id": "a1000000-0000-0000-0000-000000000005",
-      "name": "Sample sheet",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        80,
-        464
-      ]
-    },
-    {
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "hours",
-              "hoursInterval": 6
-            }
-          ]
-        }
-      },
-      "id": "b1000000-0000-0000-0000-000000000001",
-      "name": "Schedule Trigger",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [
-        80,
-        304
-      ]
-    },
-    {
-      "parameters": {
-        "documentId": {
-          "__rl": true,
-          "mode": "list",
-          "value": ""
-        },
-        "sheetName": {
-          "__rl": true,
-          "mode": "list",
-          "value": ""
-        },
-        "options": {}
-      },
-      "id": "b1000000-0000-0000-0000-000000000002",
-      "name": "Read the URLs",
+      "id": "c0595d91-c6a2-4dd3-99e3-fef03c751619",
+      "name": "Mark row error",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        288,
-        304
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "c0000000-0000-0000-0000-000000000001",
-              "leftValue": "={{ $json.url }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty",
-                "singleValue": true
-              }
-            },
-            {
-              "id": "c0000000-0000-0000-0000-000000000002",
-              "leftValue": "={{ $json.status }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "empty",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "b1000000-0000-0000-0000-000000000003",
-      "name": "Only new rows",
-      "type": "n8n-nodes-base.filter",
-      "typeVersion": 2.2,
-      "position": [
-        480,
-        304
-      ]
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "id": "b1000000-0000-0000-0000-000000000004",
-      "name": "Loop over URLs",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        768,
-        304
-      ]
-    },
-    {
-      "parameters": {
-        "url": "={{  $json.url  }}",
-        "options": {}
-      },
-      "id": "b1000000-0000-0000-0000-000000000005",
-      "name": "Convert to markdown",
-      "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
-      "typeVersion": 1,
-      "position": [
-        992,
-        304
+        3440,
+        224
       ],
-      "retryOnFail": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "c0000000-0000-0000-0000-000000000003",
-              "leftValue": "={{ $json.error }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "empty",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "b1000000-0000-0000-0000-00000000000a",
-      "name": "Converted OK?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1184,
-        304
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "// Clean the markdown from the Gaffa node and build a safe filename.\nconst url = $('Loop over URLs').item.json.url;\nconst md = ($input.item.json.actions?.[0]?.output ?? '').toString();\nconst clean = md\n  .replace(/!\\[[^\\]]*\\]\\([^)]+\\)/g, '')\n  .replace(/\\[([^\\]]+)\\]\\([^)]+\\)/g, '$1')\n  .replace(/https?:\\/\\/\\S+/g, '')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\nconst filename = url\n  .replace(/^https?:\\/\\//, '')\n  .replace(/[^a-zA-Z0-9]+/g, '-')\n  .replace(/^-+|-+$/g, '')\n  .slice(0, 120);\nreturn { url, filename, markdown: clean };"
-      },
-      "id": "b1000000-0000-0000-0000-000000000006",
-      "name": "Clean the markdown",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1408,
-        304
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "createFromText",
-        "content": "={{ $json.markdown }}",
-        "name": "={{ $json.filename }}.md",
-        "driveId": {
-          "__rl": true,
-          "mode": "list",
-          "value": "My Drive"
-        },
-        "folderId": {
-          "__rl": true,
-          "mode": "list",
-          "value": "root",
-          "cachedResultName": "/ (Root folder)"
-        },
-        "options": {}
-      },
-      "id": "b1000000-0000-0000-0000-000000000007",
-      "name": "Save to Drive",
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 3,
-      "position": [
-        1632,
-        304
-      ]
-    },
-    {
       "parameters": {
         "operation": "update",
         "documentId": {
           "__rl": true,
+          "value": "1Rcqheojp2cy66kp2aEwb7bU8ByISlZJ4BBVxJsyXi6I",
           "mode": "list",
-          "value": ""
+          "cachedResultName": "Gaffa Template Test",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Rcqheojp2cy66kp2aEwb7bU8ByISlZJ4BBVxJsyXi6I/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
+          "value": "gid=0",
           "mode": "list",
-          "value": ""
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "url": "={{  $('Loop over URLs').item.json.url  }}",
-            "row_number": 0,
-            "status": "done"
-          },
-          "matchingColumns": [
-            "url"
-          ],
-          "schema": [
-            {
-              "id": "url",
-              "displayName": "url",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "status",
-              "displayName": "status",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "row_number",
-              "displayName": "row_number",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "readOnly": true,
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "id": "b1000000-0000-0000-0000-000000000008",
-      "name": "Mark row done",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
-      "position": [
-        1840,
-        304
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "documentId": {
-          "__rl": true,
-          "mode": "list",
-          "value": ""
-        },
-        "sheetName": {
-          "__rl": true,
-          "mode": "list",
-          "value": ""
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Rcqheojp2cy66kp2aEwb7bU8ByISlZJ4BBVxJsyXi6I/edit#gid=0"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
             "url": "={{  $('Loop over URLs').item.json.url }}",
-            "row_number": 0,
             "status": "error"
           },
           "matchingColumns": [
@@ -393,75 +64,379 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "readOnly": true,
-              "removed": false
+              "removed": true
             }
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         },
         "options": {}
-      },
-      "id": "b1000000-0000-0000-0000-000000000009",
-      "name": "Mark row error",
+      }
+    },
+    {
+      "id": "78b31e02-562d-4c69-a909-0d93f8c2502b",
+      "name": "Mark row done",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        1408,
-        512
-      ]
+        3872,
+        16
+      ],
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1Rcqheojp2cy66kp2aEwb7bU8ByISlZJ4BBVxJsyXi6I",
+          "mode": "list",
+          "cachedResultName": "Gaffa Template Test",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Rcqheojp2cy66kp2aEwb7bU8ByISlZJ4BBVxJsyXi6I/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Rcqheojp2cy66kp2aEwb7bU8ByISlZJ4BBVxJsyXi6I/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "url": "={{  $('Loop over URLs').item.json.url }}",
+            "status": "done"
+          },
+          "matchingColumns": [
+            "url"
+          ],
+          "schema": [
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "aff75a9b-4024-48d3-a542-60c493bd994e",
+      "name": "Save to Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3664,
+        16
+      ],
+      "parameters": {
+        "operation": "createFromText",
+        "content": "={{ $json.markdown }}",
+        "name": "={{ $json.filename }}.md",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root",
+          "cachedResultName": "/ (Root folder)"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "ad7226fb-a57a-404f-a1e9-e0673574188e",
+      "name": "Clean the markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        16
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Clean the markdown from the Gaffa node and build a safe filename.\nconst url = $('Loop over URLs').item.json.url;\nconst md = ($input.item.json.actions?.[0]?.output ?? '').toString();\nconst clean = md\n  .replace(/!\\[[^\\]]*\\]\\([^)]+\\)/g, '')\n  .replace(/\\[([^\\]]+)\\]\\([^)]+\\)/g, '$1')\n  .replace(/https?:\\/\\/\\S+/g, '')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\nconst filename = url\n  .replace(/^https?:\\/\\//, '')\n  .replace(/[^a-zA-Z0-9]+/g, '-')\n  .replace(/^-+|-+$/g, '')\n  .slice(0, 120);\nreturn { url, filename, markdown: clean };"
+      }
+    },
+    {
+      "id": "ce9b2eb7-f695-41e3-8f0b-d9612c44b456",
+      "name": "Converted OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3216,
+        16
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c0000000-0000-0000-0000-000000000003",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "9e024335-3222-41c9-addb-94523065d2de",
+      "name": "Convert to markdown",
+      "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
+      "typeVersion": 1,
+      "retryOnFail": true,
+      "onError": "continueRegularOutput",
+      "position": [
+        3024,
+        16
+      ],
+      "parameters": {
+        "url": "={{  $json.url  }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "f7d39e1f-ec58-440d-8b0e-e3e1b2ccce38",
+      "name": "Loop over URLs",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2800,
+        16
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "e390642c-6c3d-4a1d-b647-4b05f19c4392",
+      "name": "Only new rows",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2512,
+        16
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c0000000-0000-0000-0000-000000000001",
+              "leftValue": "={{ $json.url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c0000000-0000-0000-0000-000000000002",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b44c808-6ec6-41ea-be10-d2aac59f2b68",
+      "name": "Read the URLs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2320,
+        16
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Rcqheojp2cy66kp2aEwb7bU8ByISlZJ4BBVxJsyXi6I",
+          "mode": "list",
+          "cachedResultName": "Gaffa Template Test",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Rcqheojp2cy66kp2aEwb7bU8ByISlZJ4BBVxJsyXi6I/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Rcqheojp2cy66kp2aEwb7bU8ByISlZJ4BBVxJsyXi6I/edit#gid=0"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c6158f1d-bf81-4aed-ba6f-82cbc012624f",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        2112,
+        16
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "de6fc83f-44e9-4f1f-add9-8622386a0ee7",
+      "name": "Sample sheet",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        208
+      ],
+      "parameters": {
+        "content": "### Sample sheet\nCopy this Google Sheet as a starting point (a url column and a status column):\n\nhttps://docs.google.com/spreadsheets/d/1Rcqheojp2cy66kp2aEwb7bU8ByISlZJ4BBVxJsyXi6I/copy",
+        "height": 176,
+        "width": 412,
+        "color": 4
+      }
+    },
+    {
+      "id": "bfc95f74-6fbe-475c-a71d-2070ceb904fc",
+      "name": "Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        -208
+      ],
+      "parameters": {
+        "content": "## Convert URLs from Google Sheets to Drive markdown files with Gaffa\n\nKeep a list of URLs in a Google Sheet and let the workflow turn each page into clean markdown in Google Drive. It runs on a schedule and marks each row as it goes.\n\n### Who's it for\nAnyone collecting web pages as text: AI builders preparing context, teams filling a knowledge base.\n\n### How it works\n- The workflow reads your sheet and keeps the rows that have a URL and no status yet.\n- [Gaffa](https://gaffa.dev/?utm_source=n8n&utm_medium=referral&utm_campaign=n8n-nodes-gaffa) loads each page in a real browser, so JavaScript-heavy pages work, and converts it to markdown.\n- A code step strips leftover links and blank lines.\n- Drive saves the markdown and the row is marked done, a page that fails is marked with an error and the run carries on.\n\n### Setup\n1. Install the [Gaffa community node](https://www.npmjs.com/package/@gaffa-dev/n8n-nodes-gaffa).\n2. Create an API key at [gaffa.dev](https://gaffa.dev/?utm_source=n8n&utm_medium=referral&utm_campaign=n8n-nodes-gaffa) and add it as the Gaffa API credential.\n3. Connect Google Sheets and Google Drive.\n4. Copy the sample sheet from the canvas sticky, or make your own with `url` and `status` columns.\n5. Pick your Drive folder on the Save to Drive node and activate the workflow.\n\n### Requirements\n- A Gaffa API key\n- A Google Sheets credential and a sheet with `url` and `status` columns\n- A Google Drive credential and a folder to save into\n\n### Customization tips\n- Set a selector on the Gaffa node to keep only the main content, for example `main` or `article`.\n- Change the batch size on the loop to control how many pages run per pass.\n- Point the Save to Drive node elsewhere, the markdown sits on the item.\n",
+        "height": 648,
+        "width": 880
+      }
+    },
+    {
+      "id": "6ff44ea9-f766-4fc3-a475-b30eb912e473",
+      "name": "1. Read and filter",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2064,
+        -144
+      ],
+      "parameters": {
+        "content": "### 1. Read and filter\nRun on a schedule, read the sheet, keep rows with a URL that are not done yet.",
+        "height": 320,
+        "width": 592,
+        "color": 7
+      }
+    },
+    {
+      "id": "be313a31-ec1b-4038-ac28-72515d7456bb",
+      "name": "2. Loop and convert",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2768,
+        -144
+      ],
+      "parameters": {
+        "content": "### 2. Loop and convert\nWork through the URLs one batch at a time. Gaffa loads each page in a real browser and returns clean markdown. A page that fails is marked with an error and the run carries on.",
+        "height": 320,
+        "width": 608,
+        "color": 7
+      }
+    },
+    {
+      "id": "b61ee135-533d-4bbe-a22f-204a6b5ce135",
+      "name": "3. Save and mark done",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3392,
+        -144
+      ],
+      "parameters": {
+        "content": "### 3. Save and mark done\nStrip leftover links and blank lines, save the markdown as a file in Drive, then mark the sheet row done.",
+        "height": 528,
+        "width": 640,
+        "color": 7
+      }
     }
   ],
   "connections": {
-    "Schedule Trigger": {
+    "Save to Drive": {
       "main": [
         [
           {
-            "node": "Read the URLs",
+            "node": "Mark row done",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Read the URLs": {
+    "Clean the markdown": {
       "main": [
         [
           {
-            "node": "Only new rows",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Only new rows": {
-      "main": [
-        [
-          {
-            "node": "Loop over URLs",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop over URLs": {
-      "main": [
-        [],
-        [
-          {
-            "node": "Convert to markdown",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Convert to markdown": {
-      "main": [
-        [
-          {
-            "node": "Converted OK?",
+            "node": "Save to Drive",
             "type": "main",
             "index": 0
           }
@@ -486,22 +461,22 @@
         ]
       ]
     },
-    "Clean the markdown": {
+    "Convert to markdown": {
       "main": [
         [
           {
-            "node": "Save to Drive",
+            "node": "Converted OK?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Save to Drive": {
+    "Mark row error": {
       "main": [
         [
           {
-            "node": "Mark row done",
+            "node": "Loop over URLs",
             "type": "main",
             "index": 0
           }
@@ -519,11 +494,45 @@
         ]
       ]
     },
-    "Mark row error": {
+    "Loop over URLs": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Convert to markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only new rows": {
       "main": [
         [
           {
             "node": "Loop over URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read the URLs": {
+      "main": [
+        [
+          {
+            "node": "Only new rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read the URLs",
             "type": "main",
             "index": 0
           }
