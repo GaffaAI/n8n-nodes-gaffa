@@ -1,116 +1,629 @@
 {
-  "name": "Scrape job listings into Airtable with Gaffa",
+  "name": "Track and update company job openings in Airtable with Gaffa",
   "nodes": [
     {
+      "id": "h1",
+      "name": "Every Monday",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        32
+      ],
       "parameters": {
-        "content": "## Scrape job listings into Airtable\n\n### How it works\nPoint this workflow at any page that lists jobs and the listings land as records in your Airtable base.\n\n1. Set the page URL and the CSS selector of the listings container in the Settings node.\n2. The Gaffa node loads the page in a real browser and extracts every job as title, location and link.\n3. The One record per job node turns the list into one item per job.\n4. Airtable upserts the records keyed on the link, so re-runs update instead of duplicating.\n\n### Setup\n1. Install the Gaffa community node (@gaffa-dev/n8n-nodes-gaffa) if you have not already.\n2. Create an API key at gaffa.dev and add it as the Gaffa API credential.\n3. Connect your Airtable account and pick a base and table with the fields title, location and link.\n4. Put your page URL and listings selector into the Settings node and run the workflow.\n\n### Customization tips\nThe selector narrows what the extraction reads, pick the element wrapping the job list, for example `#jobs` or `.listings`, and find it with the browser dev tools. Swap the manual trigger for a Schedule Trigger to pull new listings on a cadence, the upsert keeps the table free of duplicates. Add fields like salary or company to the schema in the Gaffa node's body and to your table if the page shows them.",
-        "height": 740,
-        "width": 420
-      },
-      "id": "bbbbbbbb-0000-0000-0000-000000000001",
-      "name": "Sticky Note",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [-480, -240]
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      }
     },
     {
-      "parameters": {},
-      "id": "bbbbbbbb-0000-0000-0000-000000000002",
-      "name": "When clicking Execute workflow",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [0, 0]
-    },
-    {
+      "id": "h2",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        32
+      ],
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "d1d2d3d4-0000-0000-0000-000000000001",
-              "name": "page_url",
+              "id": "h2-0",
+              "name": "base_id",
               "type": "string",
-              "value": "https://news.ycombinator.com/jobs"
+              "value": ""
             },
             {
-              "id": "d1d2d3d4-0000-0000-0000-000000000002",
-              "name": "list_selector",
+              "id": "h2-1",
+              "name": "companies_table",
               "type": "string",
-              "value": "#hnmain"
+              "value": "Companies"
+            },
+            {
+              "id": "h2-2",
+              "name": "jobs_table",
+              "type": "string",
+              "value": "Jobs"
+            },
+            {
+              "id": "h2-3",
+              "name": "min_share",
+              "type": "number",
+              "value": 0.5
             }
           ]
         },
         "options": {}
-      },
-      "id": "bbbbbbbb-0000-0000-0000-000000000003",
-      "name": "Settings",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [220, 0]
+      }
     },
     {
+      "id": "h7",
+      "name": "Read the open roles",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "alwaysOutputData": true,
+      "position": [
+        448,
+        32
+      ],
       "parameters": {
-        "operation": "sendRequest",
-        "body": "={{ JSON.stringify({ url: $json.page_url, max_cache_age: 0, settings: { time_limit: 60000, actions: [ { type: \"parse_json\", selector: $json.list_selector, output_type: \"inline\", data_schema: { name: \"job_list\", description: \"The job listings on the page\", fields: [ { type: \"array\", name: \"jobs\", description: \"One entry per job listing\", fields: [ { type: \"string\", name: \"title\", description: \"The job title as listed\" }, { type: \"string\", name: \"location\", description: \"The job location or remote note, empty string when the page shows none\" }, { type: \"string\", name: \"link\", description: \"The absolute link to the job listing\" } ] } ] } } ] } }) }}",
-        "waitForCompletion": true,
-        "options": {}
-      },
-      "id": "bbbbbbbb-0000-0000-0000-000000000004",
-      "name": "Extract the jobs",
-      "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
-      "typeVersion": 1,
-      "position": [440, 0]
-    },
-    {
-      "parameters": {
-        "fieldToSplitOut": "actions[0].output.jobs",
-        "options": {}
-      },
-      "id": "bbbbbbbb-0000-0000-0000-000000000005",
-      "name": "One record per job",
-      "type": "n8n-nodes-base.splitOut",
-      "typeVersion": 1,
-      "position": [660, 0]
-    },
-    {
-      "parameters": {
-        "resource": "record",
-        "operation": "upsert",
+        "operation": "search",
         "base": {
           "__rl": true,
-          "mode": "list",
-          "value": ""
+          "mode": "id",
+          "value": "={{ $('Settings').first().json.base_id }}"
         },
         "table": {
           "__rl": true,
-          "mode": "list",
-          "value": ""
+          "mode": "id",
+          "value": "={{ $('Settings').first().json.jobs_table }}"
+        },
+        "filterByFormula": "{Closed on} = BLANK()",
+        "options": {}
+      }
+    },
+    {
+      "id": "h3",
+      "name": "Read the companies",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "executeOnce": true,
+      "position": [
+        672,
+        32
+      ],
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Settings').first().json.base_id }}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Settings').first().json.companies_table }}"
+        },
+        "filterByFormula": "AND({Name} != '', {Careers page} != '')",
+        "options": {}
+      }
+    },
+    {
+      "id": "h4",
+      "name": "Loop over companies",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        896,
+        32
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "h5",
+      "name": "Read the careers page",
+      "type": "@gaffa-dev/n8n-nodes-gaffa.gaffa",
+      "typeVersion": 1,
+      "onError": "continueRegularOutput",
+      "position": [
+        1216,
+        48
+      ],
+      "parameters": {
+        "operation": "sendRequest",
+        "body": "={{ JSON.stringify({\n  url: $json.fields['Careers page'],\n  max_cache_age: 0,\n  settings: {\n    time_limit: 60000,\n    actions: [{\n      type: 'parse_json',\n      output_type: 'inline',\n      data_schema: {\n        name: 'careers',\n        description: 'The open roles listed on this careers page',\n        fields: [{\n          type: 'array',\n          name: 'roles',\n          description: 'One entry per open role listed on the page',\n          fields: [\n            { type: 'string', name: 'title', description: 'The job title as listed' },\n            { type: 'string', name: 'team', description: 'The team or department, empty string when the page shows none' },\n            { type: 'string', name: 'location', description: 'The location or remote note, empty string when the page shows none' },\n            { type: 'string', name: 'link', description: 'The URL of the role page, empty string when the role has no own page' }\n          ]\n        }]\n      }\n    }]\n  }\n}) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "h6",
+      "name": "Page read?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        48
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "h8",
+      "name": "Work out the changes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        48
+      ],
+      "parameters": {
+        "jsCode": "// Compare the roles on the careers page with the open roles of this company, read from Airtable at the start.\nconst settings = $('Settings').first().json;\nconst company = $('Loop over companies').first().json;\nconst roles = $('Read the careers page').first().json.actions?.[0]?.output?.roles || [];\nconst openJobs = $('Read the open roles').all().map((item) => item.json)\n  .filter((job) => job.id && (job.fields.Company || []).includes(company.id));\nconst today = $today.toISODate();\n\n// Role links can be relative. Roles are matched on title and team, the model can miscopy the long ids in links.\nconst origin = (company.fields['Careers page'].match(/^https?:\\/\\/[^/]+/) || [''])[0];\nconst absolute = (link) => (link && link.startsWith('/') ? origin + link : link || '');\n\n// Match one to one, so the same title in two cities counts as two roles. Within a title, prefer the same location.\nconst norm = (text) => (text || '').trim().toLowerCase().replace(/\\s+/g, ' ');\nconst keyOf = (title, team) => norm(`${title || ''} | ${team || ''}`);\nconst open = new Map();\nfor (const job of openJobs) {\n  const key = keyOf(job.fields.Title, job.fields.Team);\n  open.set(key, [...(open.get(key) || []), job]);\n}\nconst takeMatch = (role) => {\n  const bucket = open.get(keyOf(role.title, role.team)) || [];\n  if (!bucket.length) return null;\n  const same = bucket.findIndex((job) => norm(job.fields.Location) === norm(role.location));\n  return bucket.splice(same >= 0 ? same : 0, 1)[0];\n};\nconst pageRoles = roles.map((role) => ({ ...role, link: absolute(role.link) }));\nconst newRoles = pageRoles.filter((role) => !takeMatch(role));\nconst goneJobs = [...open.values()].flat();\n\n// Close roles only when the page still lists most of the open ones, otherwise the read was probably partial.\nconst stillListed = openJobs.length - goneJobs.length;\nconst safeToClose = stillListed >= settings.min_share * openJobs.length;\n\nreturn [{\n  json: {\n    new_roles: newRoles.map((role) => ({\n      Title: role.title,\n      ...(role.link ? { Link: role.link } : {}),\n      Team: role.team,\n      Location: role.location,\n      'First seen': today,\n      Company: [company.id],\n    })),\n    closed_roles: safeToClose ? goneJobs.map((job) => ({ id: job.id, 'Closed on': today })) : [],\n    open_roles: pageRoles.length,\n    new_count: newRoles.length,\n    status: safeToClose\n      ? 'ok'\n      : `check the page: ${pageRoles.length} roles found, only ${stillListed} of ${openJobs.length} open roles still listed, nothing closed`,\n  },\n}];"
+      }
+    },
+    {
+      "id": "h9",
+      "name": "One item per new role",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1984,
+        -176
+      ],
+      "parameters": {
+        "fieldToSplitOut": "new_roles",
+        "options": {}
+      }
+    },
+    {
+      "id": "h10",
+      "name": "Add the new roles",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2208,
+        -176
+      ],
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Settings').first().json.base_id }}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Settings').first().json.jobs_table }}"
         },
         "columns": {
           "mappingMode": "autoMapInputData",
-          "matchingColumns": ["link"],
           "value": {}
         },
+        "options": {
+          "typecast": true
+        }
+      }
+    },
+    {
+      "id": "h11",
+      "name": "One item per closed role",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1984,
+        48
+      ],
+      "parameters": {
+        "fieldToSplitOut": "closed_roles",
         "options": {}
-      },
-      "id": "bbbbbbbb-0000-0000-0000-000000000006",
-      "name": "Upsert into Airtable",
+      }
+    },
+    {
+      "id": "h12",
+      "name": "Close the gone roles",
       "type": "n8n-nodes-base.airtable",
-      "typeVersion": 2.1,
-      "position": [880, 0]
+      "typeVersion": 2.2,
+      "position": [
+        2208,
+        48
+      ],
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Settings').first().json.base_id }}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Settings').first().json.jobs_table }}"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "id"
+          ]
+        },
+        "options": {
+          "typecast": true
+        }
+      }
+    },
+    {
+      "id": "h13",
+      "name": "Company summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1984,
+        272
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "h13-0",
+              "name": "id",
+              "type": "string",
+              "value": "={{ $('Loop over companies').first().json.id }}"
+            },
+            {
+              "id": "h13-1",
+              "name": "Status",
+              "type": "string",
+              "value": "={{ $json.status }}"
+            },
+            {
+              "id": "h13-2",
+              "name": "Open roles",
+              "type": "number",
+              "value": "={{ $json.open_roles }}"
+            },
+            {
+              "id": "h13-3",
+              "name": "New roles",
+              "type": "number",
+              "value": "={{ $json.new_count }}"
+            },
+            {
+              "id": "h13-4",
+              "name": "Last checked",
+              "type": "string",
+              "value": "={{ $today.toISODate() }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "h14",
+      "name": "Note the error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1440,
+        272
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "h14-0",
+              "name": "id",
+              "type": "string",
+              "value": "={{ $('Loop over companies').first().json.id }}"
+            },
+            {
+              "id": "h14-1",
+              "name": "Status",
+              "type": "string",
+              "value": "={{ 'could not read the page: ' + $json.error }}"
+            },
+            {
+              "id": "h14-2",
+              "name": "Last checked",
+              "type": "string",
+              "value": "={{ $today.toISODate() }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "h15",
+      "name": "Update the company",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2208,
+        272
+      ],
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Settings').first().json.base_id }}"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Settings').first().json.companies_table }}"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "id"
+          ]
+        },
+        "options": {
+          "typecast": true
+        }
+      }
+    },
+    {
+      "id": "n1",
+      "name": "Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        -224
+      ],
+      "parameters": {
+        "content": "## Track and update company job openings in Airtable with Gaffa\n\nSee every week which roles the companies on your Airtable watchlist open and close, straight from their careers pages.\n\n### Who's it for\nSales teams using hiring as a buying signal, recruiters and job seekers watching target companies.\n\n### How it works\n- Every Monday the workflow reads your companies and their open roles from Airtable.\n- [Gaffa](https://gaffa.dev/?utm_source=n8n&utm_medium=referral&utm_campaign=n8n-nodes-gaffa) loads each careers page in a real browser, so JavaScript job boards like Ashby work, and its `parse_json` action returns the open roles. No AI key needed.\n- New roles are added to the Jobs table and linked to their company. Roles gone from the page get a closed date.\n- Each company gets its open and new role counts and a status.\n- Unreadable pages are noted on the company. If a page lists less than half of the open roles, nothing gets closed.\n\n### Setup\n1. Install the [Gaffa community node](https://www.npmjs.com/package/@gaffa-dev/n8n-nodes-gaffa).\n2. Create an API key at [gaffa.dev](https://gaffa.dev/?utm_source=n8n&utm_medium=referral&utm_campaign=n8n-nodes-gaffa) and add it as the Gaffa API credential.\n3. Create an Airtable base with two tables. Companies: Name, Careers page (URL), Status, Open roles (number), New roles (number), Last checked (date). Jobs: Title, Link (URL), Company (link to Companies), Team, Location, First seen (date), Closed on (date).\n4. Create an Airtable personal access token with the data.records:read, data.records:write and schema.bases:read scopes for that base and add it as the Airtable credential.\n5. Put the base ID (the app part of its URL) in Settings, add your companies and publish.\n\n### Requirements\n- A Gaffa API key\n- An Airtable personal access token. Each run uses about one API call per company and per changed role. Mind the Free plan's 1,000 calls a month.\n\n### Customization tips\n- Use a careers page URL that lists all roles on one page, or a filtered view for big boards.\n- `min_share` in Settings sets how many of the open roles a page must still list before any get closed.\n- Change the day and time in the Every Monday node.",
+        "height": 816,
+        "width": 880
+      }
+    },
+    {
+      "id": "n2",
+      "name": "1. Read the watchlist",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        -96
+      ],
+      "parameters": {
+        "content": "### 1. Read the watchlist\nEvery Monday, read the open roles and the companies with a careers page from Airtable, then go through the companies one by one.",
+        "height": 352,
+        "width": 1232,
+        "color": 7
+      }
+    },
+    {
+      "id": "n3",
+      "name": "2. Read each careers page",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        -176
+      ],
+      "parameters": {
+        "content": "### 2. Read each careers page\nGaffa reads the page and returns the open roles. A page that cannot be read is noted on the company.",
+        "height": 608,
+        "width": 432,
+        "color": 7
+      }
+    },
+    {
+      "id": "n5",
+      "name": "3. Compare and write to Airtable",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1632,
+        -304
+      ],
+      "parameters": {
+        "content": "### 3. Compare and write to Airtable\nWork out which roles are new and which are gone, add the new ones, close the gone ones and update the company with its counts and status.",
+        "height": 736,
+        "width": 800,
+        "color": 7
+      }
     }
   ],
   "connections": {
-    "When clicking Execute workflow": {
-      "main": [[{ "node": "Settings", "type": "main", "index": 0 }]]
+    "Every Monday": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Settings": {
-      "main": [[{ "node": "Extract the jobs", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Read the open roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Extract the jobs": {
-      "main": [[{ "node": "One record per job", "type": "main", "index": 0 }]]
+    "Read the open roles": {
+      "main": [
+        [
+          {
+            "node": "Read the companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "One record per job": {
-      "main": [[{ "node": "Upsert into Airtable", "type": "main", "index": 0 }]]
+    "Read the companies": {
+      "main": [
+        [
+          {
+            "node": "Loop over companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop over companies": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Read the careers page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read the careers page": {
+      "main": [
+        [
+          {
+            "node": "Page read?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Page read?": {
+      "main": [
+        [
+          {
+            "node": "Work out the changes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Note the error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Work out the changes": {
+      "main": [
+        [
+          {
+            "node": "One item per new role",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "One item per closed role",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Company summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per new role": {
+      "main": [
+        [
+          {
+            "node": "Add the new roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per closed role": {
+      "main": [
+        [
+          {
+            "node": "Close the gone roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company summary": {
+      "main": [
+        [
+          {
+            "node": "Update the company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Note the error": {
+      "main": [
+        [
+          {
+            "node": "Update the company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update the company": {
+      "main": [
+        [
+          {
+            "node": "Loop over companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
