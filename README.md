@@ -36,6 +36,18 @@ Extract the title and first paragraph from a page:
 
 Gaffa requests are asynchronous. By default the node submits the request and polls until it finishes, then returns the result. Turn off "Wait for Completion" to get the request id back immediately and poll it yourself later. Poll interval and timeout are in the Options section.
 
+## Workflow templates
+
+Ready-made workflows built on this node, each with setup steps in its README:
+
+- [Email new article digests from any web page with Gaffa and Resend](https://github.com/GaffaAI/n8n-nodes-gaffa/tree/main/templates/articles-digest)
+- [Track and update company job openings in Airtable with Gaffa](https://github.com/GaffaAI/n8n-nodes-gaffa/tree/main/templates/jobs-to-airtable)
+- [Qualify inbound website leads from forms with Gaffa and HubSpot](https://github.com/GaffaAI/n8n-nodes-gaffa/tree/main/templates/lead-to-crm)
+- [Archive changed web pages as PDFs in Google Drive with Google Sheets and Gaffa](https://github.com/GaffaAI/n8n-nodes-gaffa/tree/main/templates/page-to-pdf)
+- [Track web page table changes with Google Sheets and Gaffa](https://github.com/GaffaAI/n8n-nodes-gaffa/tree/main/templates/table-to-sheets)
+- [Convert URLs from Google Sheets to Drive markdown files with Gaffa](https://github.com/GaffaAI/n8n-nodes-gaffa/tree/main/templates/url-to-markdown)
+- [Extract structured JSON from web pages via a webhook API with Gaffa](https://github.com/GaffaAI/n8n-nodes-gaffa/tree/main/templates/webhook-to-json)
+
 ## Notes
 
 - Time limit defaults to 60000 ms. Keep it below your plan max, see [gaffa.dev pricing](https://gaffa.dev/?utm_source=npm&utm_medium=referral&utm_campaign=n8n-nodes-gaffa#pricing).
